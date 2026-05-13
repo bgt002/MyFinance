@@ -99,7 +99,58 @@ export const topSpendingCategories: SpendingCategory[] = [
   },
 ];
 
-export type AccountCategoryKey = 'cash' | 'investments' | 'crypto' | 'property';
+export type AccountTypeKey =
+  | 'checking'
+  | 'savings'
+  | 'cash'
+  | 'credit_card'
+  | 'loan'
+  | 'investment'
+  | 'crypto'
+  | 'property'
+  | 'other_asset'
+  | 'other_liability';
+
+export type AccountCategoryKey =
+  | 'cash'
+  | 'credit'
+  | 'loans'
+  | 'investments'
+  | 'crypto'
+  | 'property'
+  | 'other';
+
+export type AccountKind = 'asset' | 'liability';
+
+export type AccountTypeDef = {
+  key: AccountTypeKey;
+  label: string;
+  icon: MaterialIconName;
+  kind: AccountKind;
+  category: AccountCategoryKey;
+};
+
+export const ACCOUNT_TYPES: AccountTypeDef[] = [
+  { key: 'checking', label: 'Checking', icon: 'account-balance', kind: 'asset', category: 'cash' },
+  { key: 'savings', label: 'Savings', icon: 'savings', kind: 'asset', category: 'cash' },
+  { key: 'cash', label: 'Cash', icon: 'payments', kind: 'asset', category: 'cash' },
+  { key: 'credit_card', label: 'Credit Card', icon: 'credit-card', kind: 'liability', category: 'credit' },
+  { key: 'loan', label: 'Loan', icon: 'request-quote', kind: 'liability', category: 'loans' },
+  { key: 'investment', label: 'Investment', icon: 'show-chart', kind: 'asset', category: 'investments' },
+  { key: 'crypto', label: 'Crypto', icon: 'currency-bitcoin', kind: 'asset', category: 'crypto' },
+  { key: 'property', label: 'Property', icon: 'home', kind: 'asset', category: 'property' },
+  { key: 'other_asset', label: 'Other Asset', icon: 'more-horiz', kind: 'asset', category: 'other' },
+  { key: 'other_liability', label: 'Other Liability', icon: 'more-horiz', kind: 'liability', category: 'other' },
+];
+
+export const ACCOUNT_TYPES_BY_KEY: Record<AccountTypeKey, AccountTypeDef> =
+  ACCOUNT_TYPES.reduce(
+    (acc, t) => {
+      acc[t.key] = t;
+      return acc;
+    },
+    {} as Record<AccountTypeKey, AccountTypeDef>,
+  );
 
 export type Account = {
   id: string;
@@ -107,95 +158,112 @@ export type Account = {
   updatedLabel: string;
   balance: number;
   icon: MaterialIconName;
+  type: AccountTypeKey;
+  kind: AccountKind;
   category: AccountCategoryKey;
 };
 
-export type AccountCategory = {
+export type AccountCategoryAccent = 'primary' | 'secondary' | 'tertiary' | 'neutral';
+
+export type AccountCategoryDef = {
   key: AccountCategoryKey;
   label: string;
   icon: MaterialIconName;
-  accent: 'primary' | 'secondary' | 'tertiary' | 'neutral';
-  accounts: Account[];
+  accent: AccountCategoryAccent;
 };
 
-export const accountCategories: AccountCategory[] = [
+export const ACCOUNT_CATEGORIES: AccountCategoryDef[] = [
+  { key: 'cash', label: 'Cash', icon: 'payments', accent: 'primary' },
+  { key: 'investments', label: 'Investments', icon: 'query-stats', accent: 'secondary' },
+  { key: 'crypto', label: 'Crypto', icon: 'currency-bitcoin', accent: 'tertiary' },
+  { key: 'property', label: 'Property', icon: 'domain', accent: 'neutral' },
+  { key: 'credit', label: 'Credit Cards', icon: 'credit-card', accent: 'neutral' },
+  { key: 'loans', label: 'Loans', icon: 'request-quote', accent: 'neutral' },
+  { key: 'other', label: 'Other', icon: 'more-horiz', accent: 'neutral' },
+];
+
+export type AccountCategory = AccountCategoryDef & { accounts: Account[] };
+
+export const initialAccounts: Account[] = [
   {
-    key: 'cash',
-    label: 'Cash',
-    icon: 'payments',
-    accent: 'primary',
-    accounts: [
-      {
-        id: 'acct-checking',
-        name: 'Main Checking',
-        updatedLabel: 'Updated 2h ago',
-        balance: 12450,
-        icon: 'account-balance',
-        category: 'cash',
-      },
-      {
-        id: 'acct-emergency',
-        name: 'Emergency Fund',
-        updatedLabel: 'Updated 1d ago',
-        balance: 45000,
-        icon: 'savings',
-        category: 'cash',
-      },
-    ],
+    id: 'acct-checking',
+    name: 'Main Checking',
+    updatedLabel: 'Updated 2h ago',
+    balance: 12450,
+    icon: 'account-balance',
+    type: 'checking',
+    kind: 'asset',
+    category: 'cash',
   },
   {
-    key: 'investments',
-    label: 'Investments',
-    icon: 'query-stats',
-    accent: 'secondary',
-    accounts: [
-      {
-        id: 'acct-vanguard',
-        name: 'Vanguard Index',
-        updatedLabel: 'Updated 5m ago',
-        balance: 420140,
-        icon: 'show-chart',
-        category: 'investments',
-      },
-    ],
+    id: 'acct-emergency',
+    name: 'Emergency Fund',
+    updatedLabel: 'Updated 1d ago',
+    balance: 45000,
+    icon: 'savings',
+    type: 'savings',
+    kind: 'asset',
+    category: 'cash',
   },
   {
-    key: 'crypto',
-    label: 'Crypto',
-    icon: 'currency-bitcoin',
-    accent: 'tertiary',
-    accounts: [
-      {
-        id: 'acct-cold-wallet',
-        name: 'Cold Wallet',
-        updatedLabel: 'Updated 4d ago',
-        balance: 85000,
-        icon: 'wallet',
-        category: 'crypto',
-      },
-    ],
+    id: 'acct-vanguard',
+    name: 'Vanguard Index',
+    updatedLabel: 'Updated 5m ago',
+    balance: 420140,
+    icon: 'show-chart',
+    type: 'investment',
+    kind: 'asset',
+    category: 'investments',
   },
   {
-    key: 'property',
-    label: 'Property',
-    icon: 'domain',
-    accent: 'neutral',
-    accounts: [
-      {
-        id: 'acct-residence',
-        name: 'Primary Residence',
-        updatedLabel: 'Updated 1mo ago',
-        balance: 686000,
-        icon: 'home',
-        category: 'property',
-      },
-    ],
+    id: 'acct-cold-wallet',
+    name: 'Cold Wallet',
+    updatedLabel: 'Updated 4d ago',
+    balance: 85000,
+    icon: 'wallet',
+    type: 'crypto',
+    kind: 'asset',
+    category: 'crypto',
+  },
+  {
+    id: 'acct-residence',
+    name: 'Primary Residence',
+    updatedLabel: 'Updated 1mo ago',
+    balance: 686000,
+    icon: 'home',
+    type: 'property',
+    kind: 'asset',
+    category: 'property',
   },
 ];
 
-export const accountsTotalBalance = accountCategories
-  .flatMap((c) => c.accounts)
-  .reduce((sum, a) => sum + a.balance, 0);
+export function groupAccountsByCategory(accounts: Account[]): AccountCategory[] {
+  return ACCOUNT_CATEGORIES.map((cat) => ({
+    ...cat,
+    accounts: accounts.filter((a) => a.category === cat.key),
+  })).filter((cat) => cat.accounts.length > 0);
+}
+
+export function computeAccountsTotal(accounts: Account[]): number {
+  return accounts.reduce(
+    (sum, a) => sum + (a.kind === 'asset' ? a.balance : -a.balance),
+    0,
+  );
+}
+
+export function computeAccountsBreakdown(accounts: Account[]): {
+  assets: number;
+  liabilities: number;
+} {
+  return accounts.reduce(
+    (acc, a) => {
+      if (a.kind === 'asset') acc.assets += a.balance;
+      else acc.liabilities += a.balance;
+      return acc;
+    },
+    { assets: 0, liabilities: 0 },
+  );
+}
 
 export const accountsTotalDeltaPct = 2.4;
 

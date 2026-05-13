@@ -1,5 +1,6 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useMemo, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -11,12 +12,14 @@ import {
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Colors, Radius, Spacing, Type } from '@/constants/theme';
 import {
-  accountCategories,
-  accountsTotalBalance,
-  accountsTotalDeltaPct,
+  computeAccountsBreakdown,
+  groupAccountsByCategory,
+  initialAccounts,
   type Account,
   type AccountCategory,
 } from '@/data/dummy';
+
+import { AddAccountModal, type NewAccountInput } from './AddAccountModal';
 
 const ACCENT_MAP = {
   primary: { color: Colors.primary, tint: Colors.primaryTint10 },
@@ -26,36 +29,60 @@ const ACCENT_MAP = {
 } as const;
 
 function formatBalance(amount: number) {
-  return `$${amount.toLocaleString('en-US', {
+  const sign = amount < 0 ? '-' : '';
+  return `${sign}$${Math.abs(amount).toLocaleString('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
 }
 
 export function AccountsSection() {
+  const [accounts, setAccounts] = useState<Account[]>(initialAccounts);
+  const [modalVisible, setModalVisible] = useState(false);
+
+  const categories = useMemo(() => groupAccountsByCategory(accounts), [accounts]);
+  const breakdown = useMemo(() => computeAccountsBreakdown(accounts), [accounts]);
+
+  function handleAddAccount(input: NewAccountInput) {
+    const id = `acct-${Date.now()}`;
+    setAccounts((prev) => [
+      ...prev,
+      { ...input, id, updatedLabel: 'Just now' },
+    ]);
+    setModalVisible(false);
+  }
+
   return (
-    <ScrollView
-      style={styles.scroll}
-      contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
-    >
-      <AddAccountButton />
-      <TotalBalanceCard />
-      <View style={{ gap: Spacing.stackLg }}>
-        {accountCategories.map((cat) => (
-          <CategoryBlock key={cat.key} category={cat} />
-        ))}
-      </View>
-    </ScrollView>
+    <>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <AddAccountButton onPress={() => setModalVisible(true)} />
+        <BalanceBreakdownCard
+          assets={breakdown.assets}
+          liabilities={breakdown.liabilities}
+        />
+        <View style={{ gap: Spacing.stackLg }}>
+          {categories.map((cat) => (
+            <CategoryBlock key={cat.key} category={cat} />
+          ))}
+        </View>
+      </ScrollView>
+      <AddAccountModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        onSubmit={handleAddAccount}
+      />
+    </>
   );
 }
 
-function AddAccountButton() {
+function AddAccountButton({ onPress }: { onPress: () => void }) {
   return (
     <Pressable
-      onPress={() => {
-        // TODO: open Add Account flow
-      }}
+      onPress={onPress}
       style={({ pressed }) => [
         styles.addBtnShadow,
         { transform: [{ scale: pressed ? 0.98 : 1 }] },
@@ -74,16 +101,29 @@ function AddAccountButton() {
   );
 }
 
-function TotalBalanceCard() {
+function BalanceBreakdownCard({
+  assets,
+  liabilities,
+}: {
+  assets: number;
+  liabilities: number;
+}) {
   return (
     <GlassCard radius={Radius.card} style={styles.balanceCard}>
-      <Text style={styles.eyebrow}>Total Balance</Text>
-      <Text style={styles.balanceAmount}>{formatBalance(accountsTotalBalance)}</Text>
-      <View style={styles.balanceTrendRow}>
-        <MaterialIcons name="trending-up" size={18} color={Colors.primary} />
-        <Text style={styles.balanceTrendText}>
-          +{accountsTotalDeltaPct.toFixed(1)}% this month
-        </Text>
+      <View style={styles.breakdownRow}>
+        <View style={styles.breakdownCol}>
+          <Text style={styles.eyebrow}>Total Assets</Text>
+          <Text style={[styles.breakdownAmount, { color: Colors.primary }]}>
+            {formatBalance(assets)}
+          </Text>
+        </View>
+        <View style={styles.breakdownDivider} />
+        <View style={styles.breakdownCol}>
+          <Text style={styles.eyebrow}>Total Liabilities</Text>
+          <Text style={[styles.breakdownAmount, { color: Colors.tertiary }]}>
+            {formatBalance(liabilities)}
+          </Text>
+        </View>
       </View>
     </GlassCard>
   );
@@ -218,20 +258,19 @@ const styles = StyleSheet.create({
   balanceCard: {
     padding: Spacing.marginMain,
   },
-  balanceAmount: {
-    ...Type.displayLg,
-    color: Colors.primary,
+  breakdownRow: {
+    flexDirection: 'column',
   },
-  balanceTrendRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  breakdownCol: {
     gap: Spacing.stackXs,
-    marginTop: Spacing.stackSm,
   },
-  balanceTrendText: {
-    fontSize: 14,
-    color: Colors.primary,
-    fontWeight: '600',
+  breakdownDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: Colors.outlineVariant,
+    marginVertical: Spacing.stackMd,
+  },
+  breakdownAmount: {
+    ...Type.displayLg,
   },
 
   categoryHeader: {
