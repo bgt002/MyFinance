@@ -1,32 +1,41 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useMemo, useState } from 'react';
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { BankLogo } from '@/components/ui/BankLogo';
 import { GlassCard } from '@/components/ui/GlassCard';
-import { Colors, Radius, Spacing, Type } from '@/constants/theme';
+import { Radius, Spacing, Type, type ColorPalette } from '@/constants/theme';
 import {
   computeAccountsBreakdown,
-  groupAccountsByCategory,
+  groupAccountsByTypeGroup,
   initialAccounts,
   type Account,
   type AccountCategory,
+  type AccountGroupBlock,
+  type AccountTypeGroup,
 } from '@/data/dummy';
+import { useThemeColors } from '@/theme';
 
+import { AccountActionsSheet } from './AccountActionsSheet';
 import { AddAccountModal, type NewAccountInput } from './AddAccountModal';
 
-const ACCENT_MAP = {
-  primary: { color: Colors.primary, tint: Colors.primaryTint10 },
-  secondary: { color: Colors.secondary, tint: Colors.secondaryTint10 },
-  tertiary: { color: Colors.tertiary, tint: Colors.tertiaryTint10 },
-  neutral: { color: Colors.onSurface, tint: Colors.surfaceContainerHigh },
-} as const;
+function getAccentMap(colors: ColorPalette) {
+  return {
+    primary: { color: colors.primary, tint: colors.primaryTint10 },
+    secondary: { color: colors.secondary, tint: colors.secondaryTint10 },
+    tertiary: { color: colors.tertiary, tint: colors.tertiaryTint10 },
+    neutral: { color: colors.onSurface, tint: colors.surfaceContainerHigh },
+  } as const;
+}
+
+function getGroupAccent(colors: ColorPalette): Record<AccountTypeGroup, string> {
+  return {
+    debit: colors.primary,
+    credit: colors.tertiary,
+    investment: colors.secondary,
+  };
+}
 
 function formatBalance(amount: number) {
   const sign = amount < 0 ? '-' : '';
@@ -36,11 +45,22 @@ function formatBalance(amount: number) {
   })}`;
 }
 
+function useAccountsTheme() {
+  const colors = useThemeColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  return { colors, styles };
+}
+
 export function AccountsSection() {
+  const { styles } = useAccountsTheme();
   const [accounts, setAccounts] = useState<Account[]>(initialAccounts);
   const [modalVisible, setModalVisible] = useState(false);
+  const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
 
-  const categories = useMemo(() => groupAccountsByCategory(accounts), [accounts]);
+  const groupBlocks = useMemo(
+    () => groupAccountsByTypeGroup(accounts),
+    [accounts],
+  );
   const breakdown = useMemo(() => computeAccountsBreakdown(accounts), [accounts]);
 
   function handleAddAccount(input: NewAccountInput) {
@@ -50,6 +70,13 @@ export function AccountsSection() {
       { ...input, id, updatedLabel: 'Just now' },
     ]);
     setModalVisible(false);
+  }
+
+  function handleDeleteSelected() {
+    if (!selectedAccount) return;
+    const id = selectedAccount.id;
+    setSelectedAccount(null);
+    setAccounts((prev) => prev.filter((a) => a.id !== id));
   }
 
   return (
@@ -65,8 +92,12 @@ export function AccountsSection() {
           liabilities={breakdown.liabilities}
         />
         <View style={{ gap: Spacing.stackLg }}>
-          {categories.map((cat) => (
-            <CategoryBlock key={cat.key} category={cat} />
+          {groupBlocks.map((block) => (
+            <GroupBlock
+              key={block.key}
+              block={block}
+              onAccountPress={setSelectedAccount}
+            />
           ))}
         </View>
       </ScrollView>
@@ -75,11 +106,18 @@ export function AccountsSection() {
         onClose={() => setModalVisible(false)}
         onSubmit={handleAddAccount}
       />
+      <AccountActionsSheet
+        account={selectedAccount}
+        onClose={() => setSelectedAccount(null)}
+        onDelete={handleDeleteSelected}
+      />
     </>
   );
 }
 
 function AddAccountButton({ onPress }: { onPress: () => void }) {
+  const { colors, styles } = useAccountsTheme();
+
   return (
     <Pressable
       onPress={onPress}
@@ -89,12 +127,12 @@ function AddAccountButton({ onPress }: { onPress: () => void }) {
       ]}
     >
       <LinearGradient
-        colors={[Colors.primary, Colors.secondaryContainer]}
+        colors={[colors.primary, colors.secondaryContainer]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.addBtn}
       >
-        <MaterialIcons name="add-circle" size={22} color={Colors.onPrimary} />
+        <MaterialIcons name="add-circle" size={22} color={colors.onPrimary} />
         <Text style={styles.addBtnText}>Add New Account</Text>
       </LinearGradient>
     </Pressable>
@@ -108,19 +146,21 @@ function BalanceBreakdownCard({
   assets: number;
   liabilities: number;
 }) {
+  const { colors, styles } = useAccountsTheme();
+
   return (
     <GlassCard radius={Radius.card} style={styles.balanceCard}>
       <View style={styles.breakdownRow}>
         <View style={styles.breakdownCol}>
           <Text style={styles.eyebrow}>Total Assets</Text>
-          <Text style={[styles.breakdownAmount, { color: Colors.primary }]}>
+          <Text style={[styles.breakdownAmount, { color: colors.primary }]}>
             {formatBalance(assets)}
           </Text>
         </View>
         <View style={styles.breakdownDivider} />
         <View style={styles.breakdownCol}>
           <Text style={styles.eyebrow}>Total Liabilities</Text>
-          <Text style={[styles.breakdownAmount, { color: Colors.tertiary }]}>
+          <Text style={[styles.breakdownAmount, { color: colors.tertiary }]}>
             {formatBalance(liabilities)}
           </Text>
         </View>
@@ -129,25 +169,62 @@ function BalanceBreakdownCard({
   );
 }
 
-function CategoryBlock({ category }: { category: AccountCategory }) {
+function GroupBlock({
+  block,
+  onAccountPress,
+}: {
+  block: AccountGroupBlock;
+  onAccountPress: (account: Account) => void;
+}) {
+  const { colors, styles } = useAccountsTheme();
+  const groupAccent = getGroupAccent(colors);
+
+  return (
+    <View style={{ gap: Spacing.stackMd }}>
+      <Text style={[styles.groupTitle, { color: groupAccent[block.key] }]}>
+        {block.label}
+      </Text>
+      <View style={{ gap: Spacing.stackMd }}>
+        {block.categories.map((cat) => (
+          <CategoryBlock
+            key={cat.key}
+            category={cat}
+            onAccountPress={onAccountPress}
+          />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function CategoryBlock({
+  category,
+  onAccountPress,
+}: {
+  category: AccountCategory;
+  onAccountPress: (account: Account) => void;
+}) {
+  const { colors, styles } = useAccountsTheme();
+
   return (
     <View>
       <View style={styles.categoryHeader}>
         <MaterialIcons
           name={category.icon}
           size={20}
-          color={Colors.onSurfaceVariant}
+          color={colors.onSurfaceVariant}
         />
         <Text style={styles.categoryHeaderText}>{category.label}</Text>
       </View>
       <View style={{ gap: Spacing.stackMd }}>
-        {category.accounts.map((acct) =>
-          category.key === 'property' ? (
-            <PropertyAccountCard key={acct.id} account={acct} />
-          ) : (
-            <AccountRow key={acct.id} account={acct} accent={category.accent} />
-          ),
-        )}
+        {category.accounts.map((acct) => (
+          <AccountRow
+            key={acct.id}
+            account={acct}
+            accent={category.accent}
+            onPress={() => onAccountPress(acct)}
+          />
+        ))}
       </View>
     </View>
   );
@@ -156,70 +233,43 @@ function CategoryBlock({ category }: { category: AccountCategory }) {
 function AccountRow({
   account,
   accent,
+  onPress,
 }: {
   account: Account;
   accent: AccountCategory['accent'];
+  onPress: () => void;
 }) {
-  const a = ACCENT_MAP[accent];
+  const { colors, styles } = useAccountsTheme();
+  const a = getAccentMap(colors)[accent];
   return (
-    <GlassCard radius={Radius.xl} style={styles.accountRow}>
-      <View style={styles.accountLeft}>
-        <View style={[styles.iconBubble, { backgroundColor: a.tint }]}>
-          <MaterialIcons name={account.icon} size={22} color={a.color} />
-        </View>
-        <View>
-          <Text style={styles.accountName}>{account.name}</Text>
-          <Text style={styles.accountUpdated}>{account.updatedLabel}</Text>
-        </View>
-      </View>
-      <Text style={styles.accountBalance}>{formatBalance(account.balance)}</Text>
-    </GlassCard>
-  );
-}
-
-function PropertyAccountCard({ account }: { account: Account }) {
-  return (
-    <GlassCard radius={Radius.xl} style={styles.propertyCard}>
-      <View style={styles.propertyImageWrap}>
-        <LinearGradient
-          colors={['#2a3548', '#1a2236', '#131313']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
-        <MaterialIcons
-          name="home"
-          size={64}
-          color={Colors.onSurface}
-          style={styles.propertyImageIcon}
-        />
-        <LinearGradient
-          colors={['transparent', Colors.background]}
-          style={styles.propertyImageFade}
-        />
-      </View>
-      <View style={styles.propertyFooter}>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        pressed && { transform: [{ scale: 0.98 }], opacity: 0.85 },
+      ]}
+    >
+      <GlassCard radius={Radius.xl} style={styles.accountRow}>
         <View style={styles.accountLeft}>
-          <View
-            style={[
-              styles.iconBubble,
-              { backgroundColor: Colors.surfaceContainerHigh },
-            ]}
-          >
-            <MaterialIcons name="home-work" size={22} color={Colors.onSurface} />
-          </View>
+          {account.logoSlug ? (
+            <BankLogo slug={account.logoSlug} size={48} />
+          ) : (
+            <View style={[styles.iconBubble, { backgroundColor: a.tint }]}>
+              <MaterialIcons name={account.icon} size={22} color={a.color} />
+            </View>
+          )}
           <View>
             <Text style={styles.accountName}>{account.name}</Text>
             <Text style={styles.accountUpdated}>{account.updatedLabel}</Text>
           </View>
         </View>
         <Text style={styles.accountBalance}>{formatBalance(account.balance)}</Text>
-      </View>
-    </GlassCard>
+      </GlassCard>
+    </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorPalette) {
+  return StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: {
     paddingHorizontal: Spacing.marginMain,
@@ -230,13 +280,13 @@ const styles = StyleSheet.create({
 
   eyebrow: {
     ...Type.labelCaps,
-    color: Colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     marginBottom: Spacing.stackXs,
   },
 
   addBtnShadow: {
     borderRadius: Radius.xl,
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 20 },
     shadowOpacity: 0.4,
     shadowRadius: 24,
@@ -252,7 +302,7 @@ const styles = StyleSheet.create({
   },
   addBtnText: {
     ...Type.titleSm,
-    color: Colors.onPrimary,
+    color: colors.onPrimary,
   },
 
   balanceCard: {
@@ -266,13 +316,16 @@ const styles = StyleSheet.create({
   },
   breakdownDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.outlineVariant,
+    backgroundColor: colors.outlineVariant,
     marginVertical: Spacing.stackMd,
   },
   breakdownAmount: {
     ...Type.displayLg,
   },
 
+  groupTitle: {
+    ...Type.headlineMd,
+  },
   categoryHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -281,7 +334,7 @@ const styles = StyleSheet.create({
   },
   categoryHeaderText: {
     ...Type.titleSm,
-    color: Colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
   },
 
   accountRow: {
@@ -305,43 +358,15 @@ const styles = StyleSheet.create({
   },
   accountName: {
     ...Type.titleSm,
-    color: Colors.onSurface,
+    color: colors.onSurface,
   },
   accountUpdated: {
     fontSize: 12,
-    color: Colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
   },
   accountBalance: {
     ...Type.headlineMd,
-    color: Colors.onSurface,
+    color: colors.onSurface,
   },
-
-  propertyCard: {
-    padding: 0,
-  },
-  propertyImageWrap: {
-    height: 128,
-    width: '100%',
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  propertyImageIcon: {
-    opacity: 0.4,
-  },
-  propertyImageFade: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 64,
-  },
-  propertyFooter: {
-    padding: Spacing.stackMd,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: -32,
-  },
-});
+  });
+}

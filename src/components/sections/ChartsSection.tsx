@@ -1,25 +1,37 @@
 import { MaterialIcons } from '@expo/vector-icons';
+import { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Path, Stop } from 'react-native-svg';
 
 import { GlassCard } from '@/components/ui/GlassCard';
-import { Colors, Radius, Spacing, Type } from '@/constants/theme';
+import { Radius, Spacing, Type, type ColorPalette } from '@/constants/theme';
 import {
   monthlyPerformance,
   netWorthProgression,
   topSpendingCategories,
   type SpendingCategory,
 } from '@/data/dummy';
+import { useThemeColors } from '@/theme';
 
 const CHART_CARD_HEIGHT = 256;
 
-const ACCENT_MAP = {
-  primary: { color: Colors.primary, tint: Colors.primaryTint10 },
-  secondary: { color: Colors.secondary, tint: Colors.secondaryTint10 },
-  tertiary: { color: Colors.tertiary, tint: Colors.tertiaryTint10 },
-} as const;
+function getAccentMap(colors: ColorPalette) {
+  return {
+    primary: { color: colors.primary, tint: colors.primaryTint10 },
+    secondary: { color: colors.secondary, tint: colors.secondaryTint10 },
+    tertiary: { color: colors.tertiary, tint: colors.tertiaryTint10 },
+  } as const;
+}
+
+function useChartsTheme() {
+  const colors = useThemeColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  return { colors, styles };
+}
 
 export function ChartsSection() {
+  const { styles } = useChartsTheme();
+
   return (
     <ScrollView
       style={styles.scroll}
@@ -34,6 +46,7 @@ export function ChartsSection() {
 }
 
 function MonthlyPerformanceCard() {
+  const { colors, styles } = useChartsTheme();
   const m = monthlyPerformance;
   return (
     <GlassCard radius={Radius.xl} style={styles.perfCard}>
@@ -74,20 +87,22 @@ function MonthlyPerformanceCard() {
             </Text>
           </View>
         </View>
-        <MaterialIcons name="chevron-right" size={24} color={Colors.onSurfaceVariant} />
+        <MaterialIcons name="chevron-right" size={24} color={colors.onSurfaceVariant} />
       </View>
     </GlassCard>
   );
 }
 
 function StatCell({ label, value, delta }: { label: string; value: string; delta: string }) {
+  const { colors, styles } = useChartsTheme();
+
   return (
     <View style={{ gap: Spacing.stackXs }}>
       <Text style={styles.statCellLabel}>{label}</Text>
       <View style={styles.statCellRow}>
         <Text style={styles.statCellValue}>{value}</Text>
         <View style={styles.statCellDelta}>
-          <MaterialIcons name="arrow-drop-up" size={16} color={Colors.primary} />
+          <MaterialIcons name="arrow-drop-up" size={16} color={colors.primary} />
           <Text style={styles.statCellDeltaText}>{delta}</Text>
         </View>
       </View>
@@ -96,6 +111,7 @@ function StatCell({ label, value, delta }: { label: string; value: string; delta
 }
 
 function NetWorthProgressionChart() {
+  const { colors, styles } = useChartsTheme();
   const c = netWorthProgression;
   const activeMarker = c.markers.find((m) => m.isActive);
   return (
@@ -141,8 +157,8 @@ function NetWorthProgressionChart() {
             >
               <Defs>
                 <LinearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <Stop offset="0%" stopColor={Colors.primary} stopOpacity={1} />
-                  <Stop offset="100%" stopColor={Colors.secondary} stopOpacity={1} />
+                  <Stop offset="0%" stopColor={colors.primary} stopOpacity={1} />
+                  <Stop offset="100%" stopColor={colors.secondary} stopOpacity={1} />
                 </LinearGradient>
               </Defs>
               <Path
@@ -158,7 +174,7 @@ function NetWorthProgressionChart() {
                   cx={m.x}
                   cy={m.y}
                   r={m.isActive ? 6 : 5}
-                  fill={Colors.primary}
+                  fill={colors.primary}
                 />
               ))}
               {activeMarker && (
@@ -166,7 +182,7 @@ function NetWorthProgressionChart() {
                   cx={activeMarker.x}
                   cy={activeMarker.y}
                   r={11}
-                  fill={Colors.primary}
+                  fill={colors.primary}
                   fillOpacity={0.25}
                 />
               )}
@@ -208,6 +224,8 @@ function NetWorthProgressionChart() {
 }
 
 function TopSpendingCategoriesList() {
+  const { styles } = useChartsTheme();
+
   return (
     <View style={{ gap: Spacing.stackMd }}>
       <Text style={styles.cardTitle}>Top Spending Categories</Text>
@@ -221,7 +239,8 @@ function TopSpendingCategoriesList() {
 }
 
 function SpendingCategoryRow({ cat }: { cat: SpendingCategory }) {
-  const accent = ACCENT_MAP[cat.accent];
+  const { colors, styles } = useChartsTheme();
+  const accent = getAccentMap(colors)[cat.accent];
   return (
     <GlassCard radius={Radius.xl} style={styles.catRow}>
       <View style={[styles.catIconBubble, { backgroundColor: accent.tint }]}>
@@ -247,7 +266,8 @@ function SpendingCategoryRow({ cat }: { cat: SpendingCategory }) {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorPalette) {
+  return StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: {
     paddingHorizontal: Spacing.marginMain,
@@ -258,16 +278,16 @@ const styles = StyleSheet.create({
 
   eyebrow: {
     ...Type.labelCaps,
-    color: Colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
   },
   cardHeadline: {
     ...Type.headlineMd,
-    color: Colors.onSurface,
+    color: colors.onSurface,
     marginTop: Spacing.stackXs,
   },
   cardTitle: {
     ...Type.titleSm,
-    color: Colors.onSurface,
+    color: colors.onSurface,
   },
 
   perfCard: {
@@ -283,13 +303,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: Radius.pill,
-    backgroundColor: Colors.primaryTint10,
+    backgroundColor: colors.primaryTint10,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.primaryTint20,
+    borderColor: colors.primaryTint20,
   },
   statusPillText: {
     ...Type.labelCaps,
-    color: Colors.primary,
+    color: colors.primary,
   },
   perfGrid: {
     flexDirection: 'row',
@@ -297,7 +317,7 @@ const styles = StyleSheet.create({
   },
   statCellLabel: {
     ...Type.bodyMd,
-    color: Colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
   },
   statCellRow: {
     flexDirection: 'row',
@@ -306,7 +326,7 @@ const styles = StyleSheet.create({
   },
   statCellValue: {
     ...Type.headlineMd,
-    color: Colors.onSurface,
+    color: colors.onSurface,
   },
   statCellDelta: {
     flexDirection: 'row',
@@ -314,21 +334,21 @@ const styles = StyleSheet.create({
   },
   statCellDeltaText: {
     fontSize: 12,
-    color: Colors.primary,
+    color: colors.primary,
     fontWeight: '600',
   },
   perfFooter: {
     marginTop: Spacing.marginMain,
     paddingTop: Spacing.marginMain,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Colors.white05,
+    borderTopColor: colors.white05,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   perfFooterLabel: {
     fontSize: 12,
-    color: Colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
   },
   perfFooterRow: {
     flexDirection: 'row',
@@ -339,17 +359,17 @@ const styles = StyleSheet.create({
   perfFooterTrack: {
     height: 8,
     width: 128,
-    backgroundColor: Colors.surfaceContainer,
+    backgroundColor: colors.surfaceContainer,
     borderRadius: 4,
     overflow: 'hidden',
   },
   perfFooterFill: {
     height: '100%',
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
   },
   perfFooterAmount: {
     ...Type.titleSm,
-    color: Colors.onSurface,
+    color: colors.onSurface,
   },
 
   chartHeader: {
@@ -367,16 +387,16 @@ const styles = StyleSheet.create({
     borderRadius: Radius.sm,
   },
   rangePillActive: {
-    backgroundColor: Colors.primaryTint10,
+    backgroundColor: colors.primaryTint10,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.primaryTint20,
+    borderColor: colors.primaryTint20,
   },
   rangePillText: {
     ...Type.labelCaps,
-    color: Colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
   },
   rangePillTextActive: {
-    color: Colors.primary,
+    color: colors.primary,
   },
 
   chartCard: {
@@ -397,7 +417,7 @@ const styles = StyleSheet.create({
   },
   gridLine: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.white05,
+    backgroundColor: colors.white05,
   },
   svgWrap: {
     position: 'absolute',
@@ -413,7 +433,7 @@ const styles = StyleSheet.create({
     transform: [{ translateX: -34 }],
   },
   tooltipPill: {
-    backgroundColor: Colors.surfaceContainerHigh,
+    backgroundColor: colors.surfaceContainerHigh,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(78, 222, 163, 0.3)',
     borderRadius: Radius.sm,
@@ -422,7 +442,7 @@ const styles = StyleSheet.create({
   },
   tooltipText: {
     fontSize: 10,
-    color: Colors.primary,
+    color: colors.primary,
     fontWeight: '600',
   },
   tooltipLine: {
@@ -438,12 +458,12 @@ const styles = StyleSheet.create({
   },
   monthLabel: {
     fontSize: 10,
-    color: Colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     fontWeight: '700',
     letterSpacing: 1,
   },
   monthLabelActive: {
-    color: Colors.primary,
+    color: colors.primary,
   },
 
   catRow: {
@@ -470,20 +490,21 @@ const styles = StyleSheet.create({
   },
   catLabel: {
     ...Type.bodyMd,
-    color: Colors.onSurface,
+    color: colors.onSurface,
   },
   catAmount: {
     ...Type.labelCaps,
-    color: Colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
   },
   catTrack: {
     height: 8,
     width: '100%',
-    backgroundColor: Colors.surfaceContainer,
+    backgroundColor: colors.surfaceContainer,
     borderRadius: 4,
     overflow: 'hidden',
   },
   catFill: {
     height: '100%',
   },
-});
+  });
+}

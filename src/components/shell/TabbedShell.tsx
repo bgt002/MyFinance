@@ -1,5 +1,6 @@
 import { MaterialIcons } from '@expo/vector-icons';
-import { useCallback, useState } from 'react';
+import { useRouter } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -26,12 +27,11 @@ import { GoalsSection } from '@/components/sections/GoalsSection';
 import { HomeSection } from '@/components/sections/HomeSection';
 import { LogSection } from '@/components/sections/LogSection';
 import { PlaceholderSection } from '@/components/sections/PlaceholderSection';
-import { Colors, Spacing, Type } from '@/constants/theme';
+import { Spacing, Type } from '@/constants/theme';
+import { useThemeColors } from '@/theme';
 
 const TAB_WIDTH = 92;
 const UNDERLINE_WIDTH = 56;
-const TAB_INACTIVE_COLOR = 'rgba(187, 202, 191, 0.6)';
-
 const TABS = [
   { key: 'home', label: 'Home' },
   { key: 'accounts', label: 'Accounts' },
@@ -51,11 +51,27 @@ function renderSection(key: (typeof TABS)[number]['key'], label: string) {
 }
 
 export function TabbedShell() {
+  const router = useRouter();
   const { width: screenWidth } = useWindowDimensions();
+  const colors = useThemeColors();
   const pagerRef = useAnimatedRef<Animated.ScrollView>();
   const tabStripRef = useAnimatedRef<Animated.ScrollView>();
   const scrollX = useSharedValue(0);
   const [, setActiveIndex] = useState(0);
+  const rootStyle = useMemo(
+    () => [styles.root, { backgroundColor: colors.background }],
+    [colors.background],
+  );
+  const headerSafeStyle = useMemo(
+    () => [
+      styles.headerSafe,
+      {
+        backgroundColor: colors.background,
+        borderBottomColor: colors.white05,
+      },
+    ],
+    [colors.background, colors.white05],
+  );
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (e) => {
@@ -88,25 +104,23 @@ export function TabbedShell() {
   );
 
   return (
-    <View style={styles.root}>
-      <SafeAreaView edges={['top']} style={styles.headerSafe}>
+    <View style={rootStyle}>
+      <SafeAreaView edges={['top']} style={headerSafeStyle}>
         <View style={styles.header}>
           <Pressable
             style={styles.settingsBtn}
             hitSlop={10}
-            onPress={() => {
-              // TODO: wire to /settings route once that screen exists.
-            }}
+            onPress={() => router.push('/settings')}
           >
             <MaterialIcons
               name="settings"
               size={24}
-              color={Colors.onSurfaceVariant}
+              color={colors.onSurfaceVariant}
             />
           </Pressable>
 
           <View style={styles.headerCenter}>
-            <Text style={styles.appTitle}>MyFinance</Text>
+            <Text style={[styles.appTitle, { color: colors.primary }]}>MyFinances</Text>
 
             <View style={styles.tabsWrap}>
               <Animated.ScrollView
@@ -126,6 +140,8 @@ export function TabbedShell() {
                     label={tab.label}
                     scrollX={scrollX}
                     screenWidth={screenWidth}
+                    activeColor={colors.primary}
+                    inactiveColor={colors.onSurfaceVariantMuted}
                     onPress={() => goToTab(i)}
                   />
                 ))}
@@ -161,12 +177,16 @@ function TabLabel({
   label,
   scrollX,
   screenWidth,
+  activeColor,
+  inactiveColor,
   onPress,
 }: {
   index: number;
   label: string;
   scrollX: SharedValue<number>;
   screenWidth: number;
+  activeColor: string;
+  inactiveColor: string;
   onPress: () => void;
 }) {
   const textStyle = useAnimatedStyle(() => {
@@ -176,7 +196,7 @@ function TabLabel({
       color: interpolateColor(
         activeness,
         [0, 1],
-        [TAB_INACTIVE_COLOR, Colors.primary],
+        [inactiveColor, activeColor],
       ),
     };
   });
@@ -195,17 +215,21 @@ function TabLabel({
       <Animated.Text style={[styles.tabLabel, textStyle]}>
         {label.toUpperCase()}
       </Animated.Text>
-      <Animated.View style={[styles.tabUnderline, underlineStyle]} />
+      <Animated.View
+        style={[
+          styles.tabUnderline,
+          { backgroundColor: activeColor },
+          underlineStyle,
+        ]}
+      />
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.background },
+  root: { flex: 1 },
   headerSafe: {
-    backgroundColor: Colors.background,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.white05,
   },
   header: {
     paddingTop: Spacing.stackMd,
@@ -224,8 +248,7 @@ const styles = StyleSheet.create({
   },
   appTitle: {
     ...Type.displayLg,
-    color: Colors.primary,
-    letterSpacing: -1.5,
+    letterSpacing: 0,
   },
   tabsWrap: {
     width: '100%',
@@ -244,7 +267,6 @@ const styles = StyleSheet.create({
   tabUnderline: {
     width: UNDERLINE_WIDTH,
     height: 2,
-    backgroundColor: Colors.primary,
     borderRadius: 2,
   },
   pager: {

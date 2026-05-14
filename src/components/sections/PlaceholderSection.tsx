@@ -1,7 +1,8 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { GlassCard } from '@/components/ui/GlassCard';
-import { Colors, Spacing, Type } from '@/constants/theme';
+import { Spacing, Type } from '@/constants/theme';
+import { useThemeColors } from '@/theme';
 
 type Props = {
   title: string;
@@ -9,12 +10,16 @@ type Props = {
 };
 
 export function PlaceholderSection({ title, subtitle = 'Coming soon.' }: Props) {
+  const colors = useThemeColors();
+
   return (
     <View style={styles.container}>
       <GlassCard style={styles.card}>
-        <Text style={styles.eyebrow}>Section</Text>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.subtitle}>{subtitle}</Text>
+        <Text style={[styles.eyebrow, { color: colors.onSurfaceVariant }]}>Section</Text>
+        <Text style={[styles.title, { color: colors.onSurface }]}>{title}</Text>
+        <Text style={[styles.subtitle, { color: colors.onSurfaceVariant }]}>
+          {subtitle}
+        </Text>
       </GlassCard>
     </View>
   );
@@ -32,14 +37,11 @@ const styles = StyleSheet.create({
   },
   eyebrow: {
     ...Type.labelCaps,
-    color: Colors.onSurfaceVariant,
   },
   title: {
     ...Type.headlineMd,
-    color: Colors.onSurface,
   },
   subtitle: {
     ...Type.bodyMd,
-    color: Colors.onSurfaceVariant,
   },
 });

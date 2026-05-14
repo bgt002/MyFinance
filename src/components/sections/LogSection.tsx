@@ -1,6 +1,6 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Keyboard,
   Pressable,
@@ -13,31 +13,34 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GlassCard } from '@/components/ui/GlassCard';
-import { Colors, Radius, Spacing, Type } from '@/constants/theme';
+import { Radius, Spacing, Type, type ColorPalette } from '@/constants/theme';
 import { logCategories, type LogCategory } from '@/data/dummy';
+import { useThemeColors } from '@/theme';
 
-const ACCENT_MAP = {
-  primary: {
-    color: Colors.primary,
-    tint: Colors.primaryTint10,
-    border: Colors.primaryTint20,
-  },
-  secondary: {
-    color: Colors.secondary,
-    tint: Colors.secondaryTint10,
-    border: Colors.white05,
-  },
-  tertiary: {
-    color: Colors.tertiary,
-    tint: Colors.tertiaryTint10,
-    border: Colors.white05,
-  },
-  neutral: {
-    color: Colors.onSurfaceVariant,
-    tint: Colors.surfaceContainerHigh,
-    border: Colors.white05,
-  },
-} as const;
+function getAccentMap(colors: ColorPalette) {
+  return {
+    primary: {
+      color: colors.primary,
+      tint: colors.primaryTint10,
+      border: colors.primaryTint20,
+    },
+    secondary: {
+      color: colors.secondary,
+      tint: colors.secondaryTint10,
+      border: colors.white05,
+    },
+    tertiary: {
+      color: colors.tertiary,
+      tint: colors.tertiaryTint10,
+      border: colors.white05,
+    },
+    neutral: {
+      color: colors.onSurfaceVariant,
+      tint: colors.surfaceContainerHigh,
+      border: colors.white05,
+    },
+  } as const;
+}
 
 const KEYPAD_ROWS = [
   ['1', '2', '3'],
@@ -77,7 +80,14 @@ function formatToday(): string {
   });
 }
 
+function useLogTheme() {
+  const colors = useThemeColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  return { colors, styles };
+}
+
 export function LogSection() {
+  const { styles } = useLogTheme();
   const [amount, setAmount] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('food');
   const [note, setNote] = useState('');
@@ -126,6 +136,7 @@ export function LogSection() {
 }
 
 function AmountDisplay({ amount }: { amount: string }) {
+  const { colors, styles } = useLogTheme();
   const hasValue = amount !== '';
   return (
     <View style={styles.amountSection}>
@@ -135,7 +146,7 @@ function AmountDisplay({ amount }: { amount: string }) {
         <Text
           style={[
             styles.amountValue,
-            !hasValue && { color: Colors.onSurfaceVariant, opacity: 0.35 },
+            !hasValue && { color: colors.onSurfaceVariant, opacity: 0.35 },
           ]}
         >
           {hasValue ? amount : '0.00'}
@@ -152,6 +163,8 @@ function CategoriesCard({
   selectedId: string;
   onSelect: (id: string) => void;
 }) {
+  const { styles } = useLogTheme();
+
   return (
     <GlassCard radius={Radius.xl} style={styles.categoriesCard}>
       <Text style={styles.eyebrow}>Categories</Text>
@@ -178,7 +191,8 @@ function CategoryBubble({
   selected: boolean;
   onPress: () => void;
 }) {
-  const accent = ACCENT_MAP[category.accent];
+  const { colors, styles } = useLogTheme();
+  const accent = getAccentMap(colors)[category.accent];
   return (
     <Pressable
       onPress={onPress}
@@ -205,13 +219,15 @@ function CategoryBubble({
 }
 
 function DateRow({ dateLabel }: { dateLabel: string }) {
+  const { colors, styles } = useLogTheme();
+
   return (
     <GlassCard radius={Radius.xl} style={styles.dateRow}>
       <View style={styles.dateLeft}>
-        <MaterialIcons name="calendar-today" size={20} color={Colors.primary} />
+        <MaterialIcons name="calendar-today" size={20} color={colors.primary} />
         <Text style={styles.dateText}>{dateLabel}</Text>
       </View>
-      <MaterialIcons name="chevron-right" size={18} color={Colors.onSurfaceVariant} />
+      <MaterialIcons name="chevron-right" size={18} color={colors.onSurfaceVariant} />
     </GlassCard>
   );
 }
@@ -223,10 +239,12 @@ function NoteInputCard({
   value: string;
   onChange: (next: string) => void;
 }) {
+  const { colors, styles } = useLogTheme();
+
   return (
     <GlassCard radius={Radius.xl} style={styles.noteCard}>
       <View style={styles.noteHeader}>
-        <MaterialIcons name="notes" size={20} color={Colors.primary} />
+        <MaterialIcons name="notes" size={20} color={colors.primary} />
         <Text style={styles.eyebrow}>Add Note</Text>
       </View>
       <TextInput
@@ -243,6 +261,8 @@ function NoteInputCard({
 }
 
 function Keypad({ onPress }: { onPress: (key: KeypadKey) => void }) {
+  const { styles } = useLogTheme();
+
   return (
     <View style={styles.keypad}>
       {KEYPAD_ROWS.map((row, rowIndex) => (
@@ -263,6 +283,8 @@ function KeypadButton({
   keyValue: KeypadKey;
   onPress: () => void;
 }) {
+  const { colors, styles } = useLogTheme();
+
   return (
     <Pressable
       onPress={onPress}
@@ -273,7 +295,7 @@ function KeypadButton({
     >
       <GlassCard radius={Radius.xl} style={styles.keypadCard}>
         {keyValue === 'backspace' ? (
-          <MaterialIcons name="backspace" size={22} color={Colors.onSurface} />
+          <MaterialIcons name="backspace" size={22} color={colors.onSurface} />
         ) : (
           <Text style={styles.keypadText}>{keyValue}</Text>
         )}
@@ -291,6 +313,8 @@ function SubmitButton({
   onPress: () => void;
   bottomInset: number;
 }) {
+  const { colors, styles } = useLogTheme();
+
   return (
     <View
       style={[
@@ -308,7 +332,7 @@ function SubmitButton({
         ]}
       >
         <LinearGradient
-          colors={[Colors.secondaryContainer, Colors.primaryContainer]}
+          colors={[colors.secondaryContainer, colors.primaryContainer]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.submitGradient}
@@ -317,7 +341,7 @@ function SubmitButton({
             <MaterialIcons
               name="check-circle"
               size={22}
-              color={Colors.onSurface}
+              color={colors.onSurface}
               style={styles.submitIcon}
             />
             <Text style={styles.submitText}>Add Transaction</Text>
@@ -328,7 +352,8 @@ function SubmitButton({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorPalette) {
+  return StyleSheet.create({
   root: { flex: 1 },
   scroll: { flex: 1 },
   scrollContent: {
@@ -339,7 +364,7 @@ const styles = StyleSheet.create({
 
   eyebrow: {
     ...Type.labelCaps,
-    color: Colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
   },
 
   amountSection: {
@@ -348,7 +373,7 @@ const styles = StyleSheet.create({
   },
   amountEyebrow: {
     ...Type.labelCaps,
-    color: Colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
   },
   amountRow: {
     flexDirection: 'row',
@@ -358,13 +383,13 @@ const styles = StyleSheet.create({
   amountDollar: {
     fontSize: 36,
     fontWeight: '700',
-    color: Colors.primary,
+    color: colors.primary,
     opacity: 0.6,
   },
   amountValue: {
     fontSize: 48,
     fontWeight: '700',
-    color: Colors.onSurface,
+    color: colors.onSurface,
     letterSpacing: -1,
   },
 
@@ -393,7 +418,7 @@ const styles = StyleSheet.create({
   },
   categoryLabel: {
     fontSize: 10,
-    color: Colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     fontWeight: '700',
     letterSpacing: 0.5,
   },
@@ -411,7 +436,7 @@ const styles = StyleSheet.create({
   },
   dateText: {
     ...Type.bodyMd,
-    color: Colors.onSurface,
+    color: colors.onSurface,
   },
 
   noteCard: {
@@ -424,7 +449,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.stackSm,
   },
   noteInput: {
-    color: Colors.onSurface,
+    color: colors.onSurface,
     fontSize: 14,
     lineHeight: 20,
     padding: 0,
@@ -450,7 +475,7 @@ const styles = StyleSheet.create({
   },
   keypadText: {
     ...Type.headlineMd,
-    color: Colors.onSurface,
+    color: colors.onSurface,
   },
 
   submitWrap: {
@@ -464,7 +489,7 @@ const styles = StyleSheet.create({
   submitPressable: {
     width: '100%',
     borderRadius: Radius.pill,
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.4,
     shadowRadius: 20,
@@ -488,7 +513,8 @@ const styles = StyleSheet.create({
   },
   submitText: {
     ...Type.titleSm,
-    color: Colors.onSurface,
+    color: colors.onSurface,
     textAlign: 'center',
   },
-});
+  });
+}

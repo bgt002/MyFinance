@@ -1,5 +1,7 @@
 import { MaterialIcons } from '@expo/vector-icons';
 
+import type { LogoSlug } from '@/utils/logoRegistry';
+
 type MaterialIconName = keyof typeof MaterialIcons.glyphMap;
 
 export const dashboardSummary = {
@@ -100,24 +102,26 @@ export const topSpendingCategories: SpendingCategory[] = [
 ];
 
 export type AccountTypeKey =
-  | 'checking'
-  | 'savings'
+  // Debit (assets you spend from)
+  | 'debit_card'
   | 'cash'
+  | 'paypal'
+  | 'debit_other'
+  // Credit (liabilities)
   | 'credit_card'
-  | 'loan'
-  | 'investment'
-  | 'crypto'
-  | 'property'
-  | 'other_asset'
-  | 'other_liability';
+  | 'credit_other'
+  // Investment (assets held for growth)
+  | 'stock'
+  | 'fund'
+  | 'crypto';
+
+export type AccountTypeGroup = 'debit' | 'credit' | 'investment';
 
 export type AccountCategoryKey =
   | 'cash'
   | 'credit'
-  | 'loans'
   | 'investments'
   | 'crypto'
-  | 'property'
   | 'other';
 
 export type AccountKind = 'asset' | 'liability';
@@ -128,19 +132,28 @@ export type AccountTypeDef = {
   icon: MaterialIconName;
   kind: AccountKind;
   category: AccountCategoryKey;
+  group: AccountTypeGroup;
 };
 
 export const ACCOUNT_TYPES: AccountTypeDef[] = [
-  { key: 'checking', label: 'Checking', icon: 'account-balance', kind: 'asset', category: 'cash' },
-  { key: 'savings', label: 'Savings', icon: 'savings', kind: 'asset', category: 'cash' },
-  { key: 'cash', label: 'Cash', icon: 'payments', kind: 'asset', category: 'cash' },
-  { key: 'credit_card', label: 'Credit Card', icon: 'credit-card', kind: 'liability', category: 'credit' },
-  { key: 'loan', label: 'Loan', icon: 'request-quote', kind: 'liability', category: 'loans' },
-  { key: 'investment', label: 'Investment', icon: 'show-chart', kind: 'asset', category: 'investments' },
-  { key: 'crypto', label: 'Crypto', icon: 'currency-bitcoin', kind: 'asset', category: 'crypto' },
-  { key: 'property', label: 'Property', icon: 'home', kind: 'asset', category: 'property' },
-  { key: 'other_asset', label: 'Other Asset', icon: 'more-horiz', kind: 'asset', category: 'other' },
-  { key: 'other_liability', label: 'Other Liability', icon: 'more-horiz', kind: 'liability', category: 'other' },
+  // Debit
+  { key: 'debit_card',   label: 'Debit Cards',  icon: 'credit-card',             kind: 'asset',     category: 'cash',        group: 'debit' },
+  { key: 'cash',         label: 'Cash',         icon: 'payments',                kind: 'asset',     category: 'cash',        group: 'debit' },
+  { key: 'paypal',       label: 'PayPal',       icon: 'account-balance-wallet',  kind: 'asset',     category: 'cash',        group: 'debit' },
+  { key: 'debit_other',  label: 'Other',        icon: 'more-horiz',              kind: 'asset',     category: 'other',       group: 'debit' },
+  // Credit
+  { key: 'credit_card',  label: 'Credit Cards', icon: 'credit-card',             kind: 'liability', category: 'credit',      group: 'credit' },
+  { key: 'credit_other', label: 'Other',        icon: 'more-horiz',              kind: 'liability', category: 'credit',      group: 'credit' },
+  // Investment
+  { key: 'stock',        label: 'Stock',        icon: 'trending-up',             kind: 'asset',     category: 'investments', group: 'investment' },
+  { key: 'fund',         label: 'Fund',         icon: 'pie-chart',               kind: 'asset',     category: 'investments', group: 'investment' },
+  { key: 'crypto',       label: 'Crypto',       icon: 'currency-bitcoin',        kind: 'asset',     category: 'crypto',      group: 'investment' },
+];
+
+export const ACCOUNT_TYPE_GROUPS: { key: AccountTypeGroup; label: string }[] = [
+  { key: 'debit', label: 'Debit' },
+  { key: 'credit', label: 'Credit' },
+  { key: 'investment', label: 'Investment' },
 ];
 
 export const ACCOUNT_TYPES_BY_KEY: Record<AccountTypeKey, AccountTypeDef> =
@@ -161,6 +174,14 @@ export type Account = {
   type: AccountTypeKey;
   kind: AccountKind;
   category: AccountCategoryKey;
+  // Optional fields added when an account is created via the Add Account flow.
+  logoSlug?: LogoSlug;
+  note?: string;
+  currency?: string;       // ISO code, defaults to 'USD' when omitted
+  creditLimit?: number;    // credit card / loan only
+  owed?: number;           // credit card / loan only (effectively the balance)
+  countInAsset?: boolean;  // defaults to true when omitted
+  hideBalance?: boolean;   // defaults to false when omitted
 };
 
 export type AccountCategoryAccent = 'primary' | 'secondary' | 'tertiary' | 'neutral';
@@ -176,9 +197,7 @@ export const ACCOUNT_CATEGORIES: AccountCategoryDef[] = [
   { key: 'cash', label: 'Cash', icon: 'payments', accent: 'primary' },
   { key: 'investments', label: 'Investments', icon: 'query-stats', accent: 'secondary' },
   { key: 'crypto', label: 'Crypto', icon: 'currency-bitcoin', accent: 'tertiary' },
-  { key: 'property', label: 'Property', icon: 'domain', accent: 'neutral' },
-  { key: 'credit', label: 'Credit Cards', icon: 'credit-card', accent: 'neutral' },
-  { key: 'loans', label: 'Loans', icon: 'request-quote', accent: 'neutral' },
+  { key: 'credit', label: 'Credit', icon: 'credit-card', accent: 'neutral' },
   { key: 'other', label: 'Other', icon: 'more-horiz', accent: 'neutral' },
 ];
 
@@ -186,12 +205,12 @@ export type AccountCategory = AccountCategoryDef & { accounts: Account[] };
 
 export const initialAccounts: Account[] = [
   {
-    id: 'acct-checking',
+    id: 'acct-debit',
     name: 'Main Checking',
     updatedLabel: 'Updated 2h ago',
     balance: 12450,
-    icon: 'account-balance',
-    type: 'checking',
+    icon: 'credit-card',
+    type: 'debit_card',
     kind: 'asset',
     category: 'cash',
   },
@@ -200,18 +219,18 @@ export const initialAccounts: Account[] = [
     name: 'Emergency Fund',
     updatedLabel: 'Updated 1d ago',
     balance: 45000,
-    icon: 'savings',
-    type: 'savings',
+    icon: 'more-horiz',
+    type: 'debit_other',
     kind: 'asset',
-    category: 'cash',
+    category: 'other',
   },
   {
     id: 'acct-vanguard',
     name: 'Vanguard Index',
     updatedLabel: 'Updated 5m ago',
     balance: 420140,
-    icon: 'show-chart',
-    type: 'investment',
+    icon: 'pie-chart',
+    type: 'fund',
     kind: 'asset',
     category: 'investments',
   },
@@ -220,20 +239,10 @@ export const initialAccounts: Account[] = [
     name: 'Cold Wallet',
     updatedLabel: 'Updated 4d ago',
     balance: 85000,
-    icon: 'wallet',
+    icon: 'currency-bitcoin',
     type: 'crypto',
     kind: 'asset',
     category: 'crypto',
-  },
-  {
-    id: 'acct-residence',
-    name: 'Primary Residence',
-    updatedLabel: 'Updated 1mo ago',
-    balance: 686000,
-    icon: 'home',
-    type: 'property',
-    kind: 'asset',
-    category: 'property',
   },
 ];
 
@@ -242,6 +251,32 @@ export function groupAccountsByCategory(accounts: Account[]): AccountCategory[] 
     ...cat,
     accounts: accounts.filter((a) => a.category === cat.key),
   })).filter((cat) => cat.accounts.length > 0);
+}
+
+export type AccountGroupBlock = {
+  key: AccountTypeGroup;
+  label: string;
+  categories: AccountCategory[];
+};
+
+/**
+ * Groups accounts into the three top-level type groups (Debit / Credit /
+ * Investment), with each group further organized by category. Empty groups
+ * and empty categories are filtered out.
+ */
+export function groupAccountsByTypeGroup(
+  accounts: Account[],
+): AccountGroupBlock[] {
+  return ACCOUNT_TYPE_GROUPS.map((g) => {
+    const inGroup = accounts.filter(
+      (a) => ACCOUNT_TYPES_BY_KEY[a.type]?.group === g.key,
+    );
+    const categories = ACCOUNT_CATEGORIES.map((cat) => ({
+      ...cat,
+      accounts: inGroup.filter((a) => a.category === cat.key),
+    })).filter((cat) => cat.accounts.length > 0);
+    return { key: g.key, label: g.label, categories };
+  }).filter((block) => block.categories.length > 0);
 }
 
 export function computeAccountsTotal(accounts: Account[]): number {

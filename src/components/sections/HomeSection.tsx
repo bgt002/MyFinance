@@ -1,8 +1,9 @@
 import { MaterialIcons } from '@expo/vector-icons';
+import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { GlassCard } from '@/components/ui/GlassCard';
-import { Colors, Radius, Spacing, Type } from '@/constants/theme';
+import { Radius, Spacing, Type, type ColorPalette } from '@/constants/theme';
 import {
   dashboardSummary,
   recentTransactions,
@@ -10,6 +11,7 @@ import {
   spendingAnalysis,
   type Transaction,
 } from '@/data/dummy';
+import { useThemeColors } from '@/theme';
 
 const SPARKLINE_HEIGHT = 48;
 
@@ -28,7 +30,15 @@ function formatCurrencyShort(amount: number) {
   return `$${amount}`;
 }
 
+function useHomeTheme() {
+  const colors = useThemeColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  return { colors, styles };
+}
+
 export function HomeSection() {
+  const { styles } = useHomeTheme();
+
   return (
     <ScrollView
       style={styles.scroll}
@@ -45,6 +55,7 @@ export function HomeSection() {
 }
 
 function NetWorthCard() {
+  const { colors, styles } = useHomeTheme();
   const { netWorth, trendPct, netWorthSparkline } = dashboardSummary;
   return (
     <GlassCard style={styles.netWorthCard}>
@@ -54,7 +65,7 @@ function NetWorthCard() {
         <Text style={styles.netWorthAmount}>{formatCurrency(netWorth)}</Text>
         <View style={styles.trendRow}>
           <View style={styles.trendChip}>
-            <MaterialIcons name="trending-up" size={18} color={Colors.primary} />
+            <MaterialIcons name="trending-up" size={18} color={colors.primary} />
             <Text style={styles.trendValue}>+{trendPct.toFixed(1)}%</Text>
           </View>
           <Text style={styles.trendCompare}>vs last month</Text>
@@ -70,8 +81,8 @@ function NetWorthCard() {
                 styles.sparkBar,
                 {
                   height: (SPARKLINE_HEIGHT * pct) / 100,
-                  backgroundColor: isLast ? Colors.primary : Colors.primaryGlowSoft,
-                  shadowColor: Colors.primary,
+                  backgroundColor: isLast ? colors.primary : colors.primaryGlowSoft,
+                  shadowColor: colors.primary,
                   shadowOpacity: isLast ? 0.4 : 0,
                   shadowRadius: isLast ? 8 : 0,
                   shadowOffset: { width: 0, height: 0 },
@@ -86,6 +97,7 @@ function NetWorthCard() {
 }
 
 function IncomeExpensesGrid() {
+  const { colors, styles } = useHomeTheme();
   const { income, expenses } = dashboardSummary;
   return (
     <View style={styles.row2}>
@@ -93,15 +105,15 @@ function IncomeExpensesGrid() {
         label="Income"
         value={`$${income.toLocaleString()}`}
         icon="south-west"
-        accent={Colors.primary}
-        accentBg={Colors.primaryTint10}
+        accent={colors.primary}
+        accentBg={colors.primaryTint10}
       />
       <StatTile
         label="Expenses"
         value={`$${expenses.toLocaleString()}`}
         icon="north-east"
-        accent={Colors.secondary}
-        accentBg={Colors.secondaryTint20}
+        accent={colors.secondary}
+        accentBg={colors.secondaryTint20}
       />
     </View>
   );
@@ -120,6 +132,8 @@ function StatTile({
   accent: string;
   accentBg: string;
 }) {
+  const { styles } = useHomeTheme();
+
   return (
     <GlassCard style={styles.statTile} radius={Radius.card}>
       <View style={styles.statTileHeader}>
@@ -134,6 +148,7 @@ function StatTile({
 }
 
 function SpendingAnalysisCard() {
+  const { colors, styles } = useHomeTheme();
   const { total, breakdown } = spendingAnalysis;
   return (
     <GlassCard style={styles.softCard}>
@@ -147,7 +162,7 @@ function SpendingAnalysisCard() {
                 <View
                   style={[
                     styles.legendDot,
-                    { backgroundColor: Colors[item.colorKey] },
+                    { backgroundColor: colors[item.colorKey] },
                   ]}
                 />
                 <Text style={styles.legendLabel}>{item.label}</Text>
@@ -162,6 +177,8 @@ function SpendingAnalysisCard() {
 }
 
 function FauxDonut({ totalLabel, totalValue }: { totalLabel: string; totalValue: string }) {
+  const { colors, styles } = useHomeTheme();
+
   return (
     <View style={styles.donutWrap}>
       <View style={[styles.donutRing, styles.donutBase]} />
@@ -171,8 +188,8 @@ function FauxDonut({ totalLabel, totalValue }: { totalLabel: string; totalValue:
           {
             borderTopColor: 'transparent',
             borderLeftColor: 'transparent',
-            borderRightColor: Colors.primary,
-            borderBottomColor: Colors.primary,
+            borderRightColor: colors.primary,
+            borderBottomColor: colors.primary,
             transform: [{ rotate: '45deg' }],
           },
         ]}
@@ -181,8 +198,8 @@ function FauxDonut({ totalLabel, totalValue }: { totalLabel: string; totalValue:
         style={[
           styles.donutRing,
           {
-            borderTopColor: Colors.secondary,
-            borderLeftColor: Colors.secondary,
+            borderTopColor: colors.secondary,
+            borderLeftColor: colors.secondary,
             borderRightColor: 'transparent',
             borderBottomColor: 'transparent',
             transform: [{ rotate: '-12deg' }],
@@ -198,6 +215,7 @@ function FauxDonut({ totalLabel, totalValue }: { totalLabel: string; totalValue:
 }
 
 function SavingsProgressCard() {
+  const { colors, styles } = useHomeTheme();
   const { overallPct, goals, goalIcons } = savingsProgress;
   const goal = goals[0];
   return (
@@ -233,7 +251,7 @@ function SavingsProgressCard() {
                   idx > 0 && { marginLeft: -8 },
                 ]}
               >
-                <MaterialIcons name={icon} size={16} color={Colors.onSurface} />
+                <MaterialIcons name={icon} size={16} color={colors.onSurface} />
               </View>
             ))}
           </View>
@@ -247,6 +265,8 @@ function SavingsProgressCard() {
 }
 
 function RecentTransactionsList() {
+  const { styles } = useHomeTheme();
+
   return (
     <View style={{ gap: Spacing.stackMd }}>
       <View style={styles.sectionHeaderRow}>
@@ -265,12 +285,13 @@ function RecentTransactionsList() {
 }
 
 function TransactionRow({ tx }: { tx: Transaction }) {
+  const { colors, styles } = useHomeTheme();
   const isIncome = tx.amount > 0;
   return (
     <GlassCard radius={Radius.card} style={styles.txRow}>
       <View style={styles.txLeft}>
         <View style={styles.txIconBubble}>
-          <MaterialIcons name={tx.icon} size={22} color={Colors.onSurface} />
+          <MaterialIcons name={tx.icon} size={22} color={colors.onSurface} />
         </View>
         <View>
           <Text style={styles.txMerchant}>{tx.merchant}</Text>
@@ -283,7 +304,7 @@ function TransactionRow({ tx }: { tx: Transaction }) {
         <Text
           style={[
             styles.txAmount,
-            isIncome && { color: Colors.primary },
+            isIncome && { color: colors.primary },
           ]}
         >
           {formatCurrency(tx.amount, { signed: true })}
@@ -296,7 +317,8 @@ function TransactionRow({ tx }: { tx: Transaction }) {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorPalette) {
+  return StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: {
     paddingHorizontal: Spacing.marginMain,
@@ -307,12 +329,12 @@ const styles = StyleSheet.create({
 
   eyebrow: {
     ...Type.labelCaps,
-    color: Colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     marginBottom: Spacing.stackXs,
   },
   cardTitle: {
     ...Type.titleSm,
-    color: Colors.onSurface,
+    color: colors.onSurface,
   },
 
   netWorthCard: {
@@ -327,7 +349,7 @@ const styles = StyleSheet.create({
     width: 128,
     height: 128,
     borderRadius: 64,
-    backgroundColor: Colors.primaryTint10,
+    backgroundColor: colors.primaryTint10,
     opacity: 0.7,
   },
   netWorthBody: {
@@ -335,7 +357,7 @@ const styles = StyleSheet.create({
   },
   netWorthAmount: {
     ...Type.displayLg,
-    color: Colors.onSurface,
+    color: colors.onSurface,
   },
   trendRow: {
     flexDirection: 'row',
@@ -350,12 +372,12 @@ const styles = StyleSheet.create({
   },
   trendValue: {
     ...Type.bodyMd,
-    color: Colors.primary,
+    color: colors.primary,
     fontWeight: '600',
   },
   trendCompare: {
     ...Type.bodyMd,
-    color: Colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     opacity: 0.7,
   },
   sparklineRow: {
@@ -397,7 +419,7 @@ const styles = StyleSheet.create({
   },
   statTileValue: {
     ...Type.titleSm,
-    color: Colors.onSurface,
+    color: colors.onSurface,
   },
 
   softCard: {
@@ -414,7 +436,7 @@ const styles = StyleSheet.create({
     height: 128,
   },
   donutBase: {
-    borderColor: Colors.surfaceContainerHigh,
+    borderColor: colors.surfaceContainerHigh,
   },
   donutRing: {
     position: 'absolute',
@@ -436,13 +458,13 @@ const styles = StyleSheet.create({
   },
   donutCenterLabel: {
     fontSize: 10,
-    color: Colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     fontWeight: '700',
     letterSpacing: 1,
   },
   donutCenterValue: {
     fontSize: 14,
-    color: Colors.onSurface,
+    color: colors.onSurface,
     fontWeight: '600',
   },
   legendCol: {
@@ -467,11 +489,11 @@ const styles = StyleSheet.create({
   },
   legendLabel: {
     ...Type.bodyMd,
-    color: Colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
   },
   legendValue: {
     ...Type.bodyMd,
-    color: Colors.onSurface,
+    color: colors.onSurface,
   },
 
   savingsHeader: {
@@ -481,7 +503,7 @@ const styles = StyleSheet.create({
   },
   savingsPct: {
     ...Type.labelCaps,
-    color: Colors.primary,
+    color: colors.primary,
   },
   savingsRow: {
     flexDirection: 'row',
@@ -490,22 +512,22 @@ const styles = StyleSheet.create({
   },
   savingsGoalName: {
     ...Type.bodyMd,
-    color: Colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
   },
   savingsGoalAmount: {
     ...Type.bodyMd,
-    color: Colors.onSurface,
+    color: colors.onSurface,
   },
   progressTrack: {
     height: 8,
     width: '100%',
-    backgroundColor: Colors.surfaceContainerHigh,
+    backgroundColor: colors.surfaceContainerHigh,
     borderRadius: 4,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     borderRadius: 4,
   },
   savingsFooter: {
@@ -514,7 +536,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: Spacing.stackMd,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Colors.white05,
+    borderTopColor: colors.white05,
   },
   avatarStack: {
     flexDirection: 'row',
@@ -523,15 +545,15 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: Colors.surfaceContainer,
+    backgroundColor: colors.surfaceContainer,
     borderWidth: 2,
-    borderColor: Colors.surface,
+    borderColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
   linkLabel: {
     ...Type.labelCaps,
-    color: Colors.primary,
+    color: colors.primary,
   },
 
   sectionHeaderRow: {
@@ -542,7 +564,7 @@ const styles = StyleSheet.create({
   },
   viewAllMuted: {
     ...Type.labelCaps,
-    color: Colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
   },
 
   txRow: {
@@ -561,30 +583,31 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: Radius.xl,
-    backgroundColor: Colors.surfaceContainerHighest,
+    backgroundColor: colors.surfaceContainerHighest,
     alignItems: 'center',
     justifyContent: 'center',
   },
   txMerchant: {
     ...Type.bodyLg,
-    color: Colors.onSurface,
+    color: colors.onSurface,
   },
   txMeta: {
     ...Type.bodyMd,
-    color: Colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
   },
   txRight: {
     alignItems: 'flex-end',
   },
   txAmount: {
     ...Type.titleSm,
-    color: Colors.onSurface,
+    color: colors.onSurface,
   },
   txSource: {
     fontSize: 10,
-    color: Colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     fontWeight: '700',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
-});
+  });
+}

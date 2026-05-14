@@ -1,5 +1,6 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useMemo } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -11,7 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 
 import { GlassCard } from '@/components/ui/GlassCard';
-import { Colors, Radius, Spacing, Type } from '@/constants/theme';
+import { Radius, Spacing, Type, type ColorPalette } from '@/constants/theme';
 import {
   goals,
   goalsCollectivePct,
@@ -20,16 +21,19 @@ import {
   type Goal,
   type GoalAccent,
 } from '@/data/dummy';
+import { useThemeColors } from '@/theme';
 
-const ACCENT_MAP: Record<GoalAccent, { color: string; tint: string }> = {
-  primary: { color: Colors.primary, tint: Colors.primaryTint10 },
-  secondary: { color: Colors.secondary, tint: Colors.secondaryTint10 },
-  secondaryContainer: {
-    color: Colors.secondaryContainer,
-    tint: Colors.secondaryContainerTint10,
-  },
-  tertiary: { color: Colors.tertiary, tint: Colors.tertiaryTint10 },
-};
+function getAccentMap(colors: ColorPalette): Record<GoalAccent, { color: string; tint: string }> {
+  return {
+    primary: { color: colors.primary, tint: colors.primaryTint10 },
+    secondary: { color: colors.secondary, tint: colors.secondaryTint10 },
+    secondaryContainer: {
+      color: colors.secondaryContainer,
+      tint: colors.secondaryContainerTint10,
+    },
+    tertiary: { color: colors.tertiary, tint: colors.tertiaryTint10 },
+  };
+}
 
 const RING_SIZE = 64;
 const RING_STROKE = 4;
@@ -47,7 +51,14 @@ function formatCurrencyFull(amount: number): string {
   })}`;
 }
 
+function useGoalsTheme() {
+  const colors = useThemeColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  return { colors, styles };
+}
+
 export function GoalsSection() {
+  const { styles } = useGoalsTheme();
   const insets = useSafeAreaInsets();
   return (
     <View style={styles.root}>
@@ -78,6 +89,8 @@ export function GoalsSection() {
 }
 
 function Header() {
+  const { styles } = useGoalsTheme();
+
   return (
     <View>
       <Text style={styles.pageTitle}>Savings Goals</Text>
@@ -89,17 +102,19 @@ function Header() {
 }
 
 function TotalProgressCard() {
+  const { colors, styles } = useGoalsTheme();
+
   return (
     <GlassCard radius={Radius.xl} style={styles.totalCard}>
       <View style={styles.totalBgIcon} pointerEvents="none">
-        <MaterialIcons name="savings" size={96} color={Colors.onSurface} />
+        <MaterialIcons name="savings" size={96} color={colors.onSurface} />
       </View>
       <Text style={styles.totalEyebrow}>Total Saved</Text>
       <Text style={styles.totalAmount}>{formatCurrencyFull(goalsTotalSaved)}</Text>
       <View style={styles.totalProgressRow}>
         <View style={styles.totalTrack}>
           <LinearGradient
-            colors={[Colors.primary, Colors.secondaryContainer]}
+            colors={[colors.primary, colors.secondaryContainer]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={[styles.totalFill, { width: `${goalsCollectivePct}%` }]}
@@ -108,7 +123,7 @@ function TotalProgressCard() {
         <Text style={styles.totalPct}>{goalsCollectivePct}%</Text>
       </View>
       <Text style={styles.totalHelper}>
-        You're {formatCurrencyCompact(goalsRemaining)} away from your collective
+        {"You're"} {formatCurrencyCompact(goalsRemaining)} away from your collective
         milestones.
       </Text>
     </GlassCard>
@@ -116,6 +131,7 @@ function TotalProgressCard() {
 }
 
 function ProgressRing({ pct, color }: { pct: number; color: string }) {
+  const { colors, styles } = useGoalsTheme();
   const clamped = Math.max(0, Math.min(100, pct));
   const offset = RING_CIRCUMFERENCE * (1 - clamped / 100);
   return (
@@ -126,7 +142,7 @@ function ProgressRing({ pct, color }: { pct: number; color: string }) {
           cy={RING_SIZE / 2}
           r={RING_RADIUS}
           fill="transparent"
-          stroke={Colors.white05}
+          stroke={colors.white05}
           strokeWidth={RING_STROKE}
         />
         <Circle
@@ -149,7 +165,8 @@ function ProgressRing({ pct, color }: { pct: number; color: string }) {
 }
 
 function StandardGoalCard({ goal }: { goal: Goal }) {
-  const accent = ACCENT_MAP[goal.accent];
+  const { colors, styles } = useGoalsTheme();
+  const accent = getAccentMap(colors)[goal.accent];
   const pct = (goal.saved / goal.target) * 100;
   return (
     <GlassCard radius={Radius.xl} style={styles.goalCard}>
@@ -171,7 +188,7 @@ function StandardGoalCard({ goal }: { goal: Goal }) {
           <Text
             style={[
               styles.goalStatus,
-              goal.statusTone === 'primary' && { color: Colors.primary },
+              goal.statusTone === 'primary' && { color: colors.primary },
             ]}
           >
             {goal.status}
@@ -183,6 +200,7 @@ function StandardGoalCard({ goal }: { goal: Goal }) {
 }
 
 function FeaturedGoalCard({ goal }: { goal: Goal }) {
+  const { colors, styles } = useGoalsTheme();
   const pct = (goal.saved / goal.target) * 100;
   return (
     <GlassCard radius={Radius.xl} style={styles.featuredCard}>
@@ -196,7 +214,7 @@ function FeaturedGoalCard({ goal }: { goal: Goal }) {
         <MaterialIcons
           name={goal.icon}
           size={56}
-          color={Colors.tertiary}
+          color={colors.tertiary}
           style={styles.featuredImageIcon}
         />
       </View>
@@ -222,7 +240,7 @@ function FeaturedGoalCard({ goal }: { goal: Goal }) {
         </View>
         <View style={styles.featuredTrack}>
           <LinearGradient
-            colors={[Colors.tertiary, Colors.secondaryContainer]}
+            colors={[colors.tertiary, colors.secondaryContainer]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={[styles.featuredFill, { width: `${pct}%` }]}
@@ -234,6 +252,8 @@ function FeaturedGoalCard({ goal }: { goal: Goal }) {
 }
 
 function Fab({ bottomInset }: { bottomInset: number }) {
+  const { colors, styles } = useGoalsTheme();
+
   return (
     <Pressable
       onPress={() => {
@@ -249,18 +269,19 @@ function Fab({ bottomInset }: { bottomInset: number }) {
       hitSlop={8}
     >
       <LinearGradient
-        colors={[Colors.secondaryContainer, Colors.primary]}
+        colors={[colors.secondaryContainer, colors.primary]}
         start={{ x: 0, y: 1 }}
         end={{ x: 1, y: 0 }}
         style={styles.fab}
       >
-        <MaterialIcons name="add" size={28} color={Colors.onPrimary} />
+        <MaterialIcons name="add" size={28} color={colors.onPrimary} />
       </LinearGradient>
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorPalette) {
+  return StyleSheet.create({
   root: { flex: 1 },
   scroll: { flex: 1 },
   scrollContent: {
@@ -271,11 +292,11 @@ const styles = StyleSheet.create({
 
   pageTitle: {
     ...Type.headlineMd,
-    color: Colors.onSurface,
+    color: colors.onSurface,
   },
   pageSubtitle: {
     ...Type.bodyMd,
-    color: Colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     marginTop: Spacing.stackXs,
   },
 
@@ -293,11 +314,11 @@ const styles = StyleSheet.create({
   },
   totalEyebrow: {
     ...Type.labelCaps,
-    color: Colors.primary,
+    color: colors.primary,
   },
   totalAmount: {
     ...Type.displayLg,
-    color: Colors.onSurface,
+    color: colors.onSurface,
     marginTop: Spacing.stackXs,
   },
   totalProgressRow: {
@@ -309,7 +330,7 @@ const styles = StyleSheet.create({
   totalTrack: {
     height: 8,
     flex: 1,
-    backgroundColor: Colors.white05,
+    backgroundColor: colors.white05,
     borderRadius: 4,
     overflow: 'hidden',
   },
@@ -319,11 +340,11 @@ const styles = StyleSheet.create({
   },
   totalPct: {
     ...Type.labelCaps,
-    color: Colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
   },
   totalHelper: {
     ...Type.bodyMd,
-    color: Colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     marginTop: Spacing.stackMd,
   },
 
@@ -364,16 +385,16 @@ const styles = StyleSheet.create({
   ringLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: Colors.onSurface,
+    color: colors.onSurface,
     letterSpacing: 0.5,
   },
   goalTitle: {
     ...Type.titleSm,
-    color: Colors.onSurface,
+    color: colors.onSurface,
   },
   goalTarget: {
     ...Type.labelCaps,
-    color: Colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
     marginTop: Spacing.stackXs,
   },
   goalFooter: {
@@ -384,11 +405,11 @@ const styles = StyleSheet.create({
   },
   goalSaved: {
     ...Type.headlineMd,
-    color: Colors.onSurface,
+    color: colors.onSurface,
   },
   goalStatus: {
     ...Type.bodyMd,
-    color: Colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
   },
 
   featuredCard: {
@@ -415,7 +436,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   featuredPill: {
-    backgroundColor: Colors.tertiaryTint10,
+    backgroundColor: colors.tertiaryTint10,
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: Radius.pill,
@@ -423,12 +444,12 @@ const styles = StyleSheet.create({
   featuredPillText: {
     fontSize: 10,
     fontWeight: '700',
-    color: Colors.tertiary,
+    color: colors.tertiary,
     letterSpacing: 1,
   },
   featuredDescription: {
     ...Type.bodyMd,
-    color: Colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
   },
   featuredProgressLabels: {
     flexDirection: 'row',
@@ -436,16 +457,16 @@ const styles = StyleSheet.create({
   },
   featuredSavedLabel: {
     ...Type.labelCaps,
-    color: Colors.onSurface,
+    color: colors.onSurface,
   },
   featuredTargetLabel: {
     ...Type.labelCaps,
-    color: Colors.onSurfaceVariant,
+    color: colors.onSurfaceVariant,
   },
   featuredTrack: {
     height: 12,
     width: '100%',
-    backgroundColor: Colors.white05,
+    backgroundColor: colors.white05,
     borderRadius: 6,
     overflow: 'hidden',
   },
@@ -460,7 +481,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 20 },
     shadowOpacity: 0.4,
     shadowRadius: 24,
@@ -473,4 +494,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-});
+  });
+}
