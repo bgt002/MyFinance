@@ -2,6 +2,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BankLogo } from '@/components/ui/BankLogo';
 import { GlassCard } from '@/components/ui/GlassCard';
@@ -53,6 +54,7 @@ function useAccountsTheme() {
 
 export function AccountsSection() {
   const { styles } = useAccountsTheme();
+  const insets = useSafeAreaInsets();
   const [accounts, setAccounts] = useState<Account[]>(initialAccounts);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
@@ -80,13 +82,15 @@ export function AccountsSection() {
   }
 
   return (
-    <>
+    <View style={styles.root}>
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: 80 + insets.bottom + Spacing.marginMain },
+        ]}
         showsVerticalScrollIndicator={false}
       >
-        <AddAccountButton onPress={() => setModalVisible(true)} />
         <BalanceBreakdownCard
           assets={breakdown.assets}
           liabilities={breakdown.liabilities}
@@ -101,6 +105,9 @@ export function AccountsSection() {
           ))}
         </View>
       </ScrollView>
+
+      <Fab onPress={() => setModalVisible(true)} bottomInset={insets.bottom} />
+
       <AddAccountModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
@@ -111,29 +118,36 @@ export function AccountsSection() {
         onClose={() => setSelectedAccount(null)}
         onDelete={handleDeleteSelected}
       />
-    </>
+    </View>
   );
 }
 
-function AddAccountButton({ onPress }: { onPress: () => void }) {
+function Fab({
+  onPress,
+  bottomInset,
+}: {
+  onPress: () => void;
+  bottomInset: number;
+}) {
   const { colors, styles } = useAccountsTheme();
 
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [
-        styles.addBtnShadow,
-        { transform: [{ scale: pressed ? 0.98 : 1 }] },
+        styles.fabShadow,
+        { bottom: Spacing.marginMain + bottomInset },
+        pressed && { transform: [{ scale: 0.9 }] },
       ]}
+      hitSlop={8}
     >
       <LinearGradient
-        colors={[colors.primary, colors.secondaryContainer]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.addBtn}
+        colors={[colors.secondaryContainer, colors.primary]}
+        start={{ x: 0, y: 1 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.fab}
       >
-        <MaterialIcons name="add-circle" size={22} color={colors.onPrimary} />
-        <Text style={styles.addBtnText}>Add New Account</Text>
+        <MaterialIcons name="add" size={28} color={colors.onPrimary} />
       </LinearGradient>
     </Pressable>
   );
@@ -270,11 +284,11 @@ function AccountRow({
 
 function createStyles(colors: ColorPalette) {
   return StyleSheet.create({
+  root: { flex: 1 },
   scroll: { flex: 1 },
   scrollContent: {
     paddingHorizontal: Spacing.marginMain,
     paddingTop: Spacing.stackLg,
-    paddingBottom: Spacing.stackLg * 2,
     gap: Spacing.stackLg,
   },
 
@@ -284,25 +298,24 @@ function createStyles(colors: ColorPalette) {
     marginBottom: Spacing.stackXs,
   },
 
-  addBtnShadow: {
-    borderRadius: Radius.xl,
+  fabShadow: {
+    position: 'absolute',
+    right: Spacing.marginMain,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 20 },
     shadowOpacity: 0.4,
     shadowRadius: 24,
     elevation: 12,
   },
-  addBtn: {
-    paddingVertical: Spacing.stackMd,
-    borderRadius: Radius.xl,
-    flexDirection: 'row',
+  fab: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.stackSm,
-  },
-  addBtnText: {
-    ...Type.titleSm,
-    color: colors.onPrimary,
   },
 
   balanceCard: {

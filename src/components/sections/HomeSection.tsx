@@ -276,7 +276,7 @@ function RecentTransactionsList() {
         </Pressable>
       </View>
       <View style={{ gap: Spacing.stackSm }}>
-        {recentTransactions.map((tx) => (
+        {recentTransactions.slice(0, 3).map((tx) => (
           <TransactionRow key={tx.id} tx={tx} />
         ))}
       </View>

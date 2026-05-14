@@ -35,6 +35,7 @@ export type Transaction = {
   merchant: string;
   category: string;
   whenLabel: string;
+  date: string; // ISO 'YYYY-MM-DD'
   amount: number;
   icon: MaterialIconName;
   source: 'manual' | 'automatic';
@@ -407,31 +408,138 @@ export const goalsCollectivePct = Math.round(
 export const goalsRemaining = goalsTotalTarget - goalsTotalSaved;
 
 export const recentTransactions: Transaction[] = [
-  {
-    id: 't1',
-    merchant: 'Apple Store',
-    category: 'Electronics',
-    whenLabel: 'Today',
-    amount: -1299,
-    icon: 'shopping-bag',
-    source: 'manual',
-  },
-  {
-    id: 't2',
-    merchant: 'The Alchemist',
-    category: 'Dining',
-    whenLabel: 'Yesterday',
-    amount: -84.5,
-    icon: 'restaurant',
-    source: 'manual',
-  },
-  {
-    id: 't3',
-    merchant: 'Monthly Salary',
-    category: 'Income',
-    whenLabel: 'Oct 01',
-    amount: 8500,
-    icon: 'payments',
-    source: 'automatic',
-  },
+  // May 2026 (current month)
+  { id: 't1',  merchant: 'Blue Bay Lunch', category: 'Food',   date: '2026-05-14', whenLabel: 'Today',     amount: -32,    icon: 'restaurant',     source: 'manual' },
+  { id: 't2',  merchant: 'Uber Trip',      category: 'Car',    date: '2026-05-14', whenLabel: 'Today',     amount: -13,    icon: 'directions-car', source: 'manual' },
+  { id: 't3',  merchant: 'Monthly Salary', category: 'Salary', date: '2026-05-13', whenLabel: 'Yesterday', amount: 3800,   icon: 'payments',       source: 'automatic' },
+  { id: 't4',  merchant: 'Whole Foods',    category: 'Food',   date: '2026-05-12', whenLabel: 'May 12',    amount: -150,   icon: 'restaurant',     source: 'manual' },
+  { id: 't5',  merchant: "Trader Joe's",   category: 'Food',   date: '2026-05-10', whenLabel: 'May 10',    amount: -238,   icon: 'restaurant',     source: 'manual' },
+  { id: 't6',  merchant: 'Rent',           category: 'Rent',   date: '2026-05-08', whenLabel: 'May 08',    amount: -1200,  icon: 'home',           source: 'manual' },
+  { id: 't7',  merchant: 'Shell Gas',      category: 'Car',    date: '2026-05-06', whenLabel: 'May 06',    amount: -107,   icon: 'directions-car', source: 'manual' },
+  { id: 't8',  merchant: 'Hertz Rental',   category: 'Car',    date: '2026-05-04', whenLabel: 'May 04',    amount: -230,   icon: 'directions-car', source: 'manual' },
+  { id: 't9',  merchant: 'Amazon',         category: 'Shop',   date: '2026-05-03', whenLabel: 'May 03',    amount: -180,   icon: 'shopping-bag',   source: 'manual' },
+  { id: 't10', merchant: 'Target',         category: 'Shop',   date: '2026-05-02', whenLabel: 'May 02',    amount: -300,   icon: 'shopping-bag',   source: 'manual' },
+  { id: 't11', merchant: 'Stock Dividend', category: 'Stocks', date: '2026-05-01', whenLabel: 'May 01',    amount: 400,    icon: 'trending-up',     source: 'automatic' },
+  // April 2026
+  { id: 't12', merchant: 'Whole Foods',    category: 'Food',   date: '2026-04-28', whenLabel: 'Apr 28',    amount: -85,    icon: 'restaurant',     source: 'manual' },
+  { id: 't13', merchant: 'Best Buy',       category: 'Shop',   date: '2026-04-20', whenLabel: 'Apr 20',    amount: -89,    icon: 'shopping-bag',   source: 'manual' },
+  { id: 't14', merchant: 'Monthly Salary', category: 'Salary', date: '2026-04-15', whenLabel: 'Apr 15',    amount: 3800,   icon: 'payments',       source: 'automatic' },
+  { id: 't15', merchant: 'Rent',           category: 'Rent',   date: '2026-04-05', whenLabel: 'Apr 05',    amount: -1200,  icon: 'home',           source: 'manual' },
+  // March 2026
+  { id: 't16', merchant: "Trader Joe's",   category: 'Food',   date: '2026-03-28', whenLabel: 'Mar 28',    amount: -120,   icon: 'restaurant',     source: 'manual' },
+  { id: 't17', merchant: 'Side Project',   category: 'Salary', date: '2026-03-15', whenLabel: 'Mar 15',    amount: 800,    icon: 'payments',       source: 'manual' },
+  { id: 't18', merchant: 'Rent',           category: 'Rent',   date: '2026-03-10', whenLabel: 'Mar 10',    amount: -1200,  icon: 'home',           source: 'manual' },
+  { id: 't19', merchant: 'Shell Gas',      category: 'Car',    date: '2026-03-05', whenLabel: 'Mar 05',    amount: -85,    icon: 'directions-car', source: 'manual' },
+  { id: 't20', merchant: 'Stock Dividend', category: 'Stocks', date: '2026-03-01', whenLabel: 'Mar 01',    amount: 320,    icon: 'trending-up',     source: 'automatic' },
 ];
+
+export type CategoryTotal = {
+  category: string;
+  icon: MaterialIconName;
+  total: number; // always positive — sign is implied by which list it's in
+};
+
+export function summarizeByCategory(txs: Transaction[]): {
+  spends: CategoryTotal[];
+  gains: CategoryTotal[];
+  spendTotal: number;
+  gainTotal: number;
+} {
+  const spendMap = new Map<string, { icon: MaterialIconName; total: number }>();
+  const gainMap = new Map<string, { icon: MaterialIconName; total: number }>();
+  let spendTotal = 0;
+  let gainTotal = 0;
+  for (const t of txs) {
+    const isSpend = t.amount < 0;
+    const map = isSpend ? spendMap : gainMap;
+    const amount = Math.abs(t.amount);
+    const existing = map.get(t.category);
+    if (existing) existing.total += amount;
+    else map.set(t.category, { icon: t.icon, total: amount });
+    if (isSpend) spendTotal += amount;
+    else gainTotal += amount;
+  }
+  const toArray = (m: Map<string, { icon: MaterialIconName; total: number }>): CategoryTotal[] =>
+    [...m.entries()]
+      .map(([category, v]) => ({ category, icon: v.icon, total: v.total }))
+      .sort((a, b) => b.total - a.total);
+  return {
+    spends: toArray(spendMap),
+    gains: toArray(gainMap),
+    spendTotal,
+    gainTotal,
+  };
+}
+
+export type MonthGroup = {
+  monthKey: string; // 'YYYY-MM'
+  monthLabel: string; // 'May 2026'
+  transactions: Transaction[];
+  netFlow: number;
+};
+
+export function groupTransactionsByMonth(txs: Transaction[]): MonthGroup[] {
+  const map = new Map<string, Transaction[]>();
+  for (const t of txs) {
+    const key = t.date.slice(0, 7);
+    const arr = map.get(key);
+    if (arr) arr.push(t);
+    else map.set(key, [t]);
+  }
+  const months: MonthGroup[] = [];
+  for (const [monthKey, transactions] of map.entries()) {
+    transactions.sort((a, b) => b.date.localeCompare(a.date));
+    const netFlow = transactions.reduce((s, t) => s + t.amount, 0);
+    const [yyyy, mm] = monthKey.split('-').map(Number);
+    const date = new Date(yyyy, mm - 1, 1);
+    const monthLabel = date.toLocaleDateString('en-US', {
+      month: 'long',
+      year: 'numeric',
+    });
+    months.push({ monthKey, monthLabel, transactions, netFlow });
+  }
+  months.sort((a, b) => b.monthKey.localeCompare(a.monthKey));
+  return months;
+}
+
+export type DayGroup = {
+  dayKey: string; // 'YYYY-MM-DD'
+  dayLabel: string; // 'Today, May 14' | 'Yesterday, May 13' | 'May 12'
+  transactions: Transaction[];
+  dayTotal: number;
+};
+
+function toDateKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+export function groupTransactionsByDay(txs: Transaction[]): DayGroup[] {
+  const map = new Map<string, Transaction[]>();
+  for (const t of txs) {
+    const arr = map.get(t.date);
+    if (arr) arr.push(t);
+    else map.set(t.date, [t]);
+  }
+  const now = new Date();
+  const todayKey = toDateKey(now);
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const yesterdayKey = toDateKey(yesterday);
+
+  const days: DayGroup[] = [];
+  for (const [dayKey, transactions] of map.entries()) {
+    const dayTotal = transactions.reduce((s, t) => s + t.amount, 0);
+    const [yyyy, mm, dd] = dayKey.split('-').map(Number);
+    const date = new Date(yyyy, mm - 1, dd);
+    const shortDate = date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+    });
+    let dayLabel = shortDate;
+    if (dayKey === todayKey) dayLabel = `Today, ${shortDate}`;
+    else if (dayKey === yesterdayKey) dayLabel = `Yesterday, ${shortDate}`;
+    days.push({ dayKey, dayLabel, transactions, dayTotal });
+  }
+  days.sort((a, b) => b.dayKey.localeCompare(a.dayKey));
+  return days;
+}
