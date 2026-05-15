@@ -1,13 +1,20 @@
 import { ThemeProvider as NavThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { getDb } from '@/db/client';
 import { ThemeProvider, useThemeColors, useThemeScheme } from '@/theme';
 
 export default function RootLayout() {
+  useEffect(() => {
+    getDb().catch((e) => {
+      console.error('[db] failed to initialize', e);
+    });
+  }, []);
+
   return (
     <ThemeProvider>
       <ThemedRoot />

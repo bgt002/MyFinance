@@ -10,16 +10,18 @@ import { Radius, Spacing, Type, type ColorPalette } from '@/constants/theme';
 import {
   computeAccountsBreakdown,
   groupAccountsByTypeGroup,
-  initialAccounts,
   type Account,
   type AccountCategory,
   type AccountGroupBlock,
   type AccountTypeGroup,
 } from '@/data/dummy';
+import { useAccounts } from '@/hooks/useAccounts';
 import { useThemeColors } from '@/theme';
 
 import { AccountActionsSheet } from './AccountActionsSheet';
 import { AddAccountModal, type NewAccountInput } from './AddAccountModal';
+import { EditAccountModal, type EditAccountPatch } from './EditAccountModal';
+import { UpdateBalanceModal, type BalancePatch } from './UpdateBalanceModal';
 
 function getAccentMap(colors: ColorPalette) {
   return {
@@ -55,9 +57,11 @@ function useAccountsTheme() {
 export function AccountsSection() {
   const { styles } = useAccountsTheme();
   const insets = useSafeAreaInsets();
-  const [accounts, setAccounts] = useState<Account[]>(initialAccounts);
+  const { accounts, addAccount, editAccount, removeAccount } = useAccounts();
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
+  const [editingAccount, setEditingAccount] = useState<Account | null>(null);
+  const [balanceAccount, setBalanceAccount] = useState<Account | null>(null);
 
   const groupBlocks = useMemo(
     () => groupAccountsByTypeGroup(accounts),
@@ -65,20 +69,44 @@ export function AccountsSection() {
   );
   const breakdown = useMemo(() => computeAccountsBreakdown(accounts), [accounts]);
 
-  function handleAddAccount(input: NewAccountInput) {
-    const id = `acct-${Date.now()}`;
-    setAccounts((prev) => [
-      ...prev,
-      { ...input, id, updatedLabel: 'Just now' },
-    ]);
+  async function handleAddAccount(input: NewAccountInput) {
     setModalVisible(false);
+    await addAccount(input);
   }
 
-  function handleDeleteSelected() {
+  async function handleDeleteSelected() {
     if (!selectedAccount) return;
     const id = selectedAccount.id;
     setSelectedAccount(null);
-    setAccounts((prev) => prev.filter((a) => a.id !== id));
+    await removeAccount(id);
+  }
+
+  function handleEditSelected() {
+    if (!selectedAccount) return;
+    const acct = selectedAccount;
+    setSelectedAccount(null);
+    setEditingAccount(acct);
+  }
+
+  function handleUpdateBalanceSelected() {
+    if (!selectedAccount) return;
+    const acct = selectedAccount;
+    setSelectedAccount(null);
+    setBalanceAccount(acct);
+  }
+
+  async function handleEditSubmit(patch: EditAccountPatch) {
+    if (!editingAccount) return;
+    const id = editingAccount.id;
+    setEditingAccount(null);
+    await editAccount(id, patch);
+  }
+
+  async function handleBalanceSubmit(patch: BalancePatch) {
+    if (!balanceAccount) return;
+    const id = balanceAccount.id;
+    setBalanceAccount(null);
+    await editAccount(id, patch);
   }
 
   return (
@@ -117,6 +145,18 @@ export function AccountsSection() {
         account={selectedAccount}
         onClose={() => setSelectedAccount(null)}
         onDelete={handleDeleteSelected}
+        onEdit={handleEditSelected}
+        onUpdateBalance={handleUpdateBalanceSelected}
+      />
+      <EditAccountModal
+        account={editingAccount}
+        onClose={() => setEditingAccount(null)}
+        onSubmit={handleEditSubmit}
+      />
+      <UpdateBalanceModal
+        account={balanceAccount}
+        onClose={() => setBalanceAccount(null)}
+        onSubmit={handleBalanceSubmit}
       />
     </View>
   );
@@ -265,7 +305,9 @@ function AccountRow({
       <GlassCard radius={Radius.xl} style={styles.accountRow}>
         <View style={styles.accountLeft}>
           {account.logoSlug ? (
-            <BankLogo slug={account.logoSlug} size={48} />
+            <View style={styles.logoSlot}>
+              <BankLogo slug={account.logoSlug} size={36} />
+            </View>
           ) : (
             <View style={[styles.iconBubble, { backgroundColor: a.tint }]}>
               <MaterialIcons name={account.icon} size={22} color={a.color} />
@@ -366,6 +408,12 @@ function createStyles(colors: ColorPalette) {
     width: 48,
     height: 48,
     borderRadius: Radius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoSlot: {
+    width: 48,
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
   },

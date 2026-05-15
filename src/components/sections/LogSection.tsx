@@ -1,5 +1,4 @@
 import { MaterialIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useMemo, useState } from 'react';
 import {
   Pressable,
@@ -17,11 +16,13 @@ import {
   groupTransactionsByMonth,
   recentTransactions,
   summarizeByCategory,
+  type Account,
   type CategoryTotal,
   type DayGroup,
   type MonthGroup,
   type Transaction,
 } from '@/data/dummy';
+import { useAccounts } from '@/hooks/useAccounts';
 import { useThemeColors } from '@/theme';
 
 import {
@@ -29,6 +30,21 @@ import {
   type CategoryKind,
   type NewCategoryInput,
 } from './AddCategoryModal';
+import {
+  AddTransactionModal,
+  type NewTransactionInput,
+  type TransactionKind,
+} from './AddTransactionModal';
+
+// Accounts you can spend from — debit/credit cards, cash, PayPal.
+function isSpendableAccount(a: Account): boolean {
+  return a.category === 'cash' || a.category === 'credit';
+}
+
+// Accounts you can deposit gains into — any asset account.
+function isDepositableAccount(a: Account): boolean {
+  return a.kind === 'asset';
+}
 
 type MaterialIconName = keyof typeof MaterialIcons.glyphMap;
 
@@ -99,6 +115,22 @@ export function LogSection() {
   const [userCategories, setUserCategories] = useState<UserCategory[]>([]);
   const [categoryModalKind, setCategoryModalKind] =
     useState<CategoryKind | null>(null);
+  const [activeEntry, setActiveEntry] = useState<{
+    kind: TransactionKind;
+    cat: CategoryTotal;
+  } | null>(null);
+
+  const { accounts } = useAccounts();
+  const spendableAccounts = useMemo(
+    () => accounts.filter(isSpendableAccount),
+    [accounts],
+  );
+  const depositableAccounts = useMemo(
+    () => accounts.filter(isDepositableAccount),
+    [accounts],
+  );
+  const modalAccounts =
+    activeEntry?.kind === 'gain' ? depositableAccounts : spendableAccounts;
 
   const displaySpends = useMemo(
     () =>
@@ -125,13 +157,18 @@ export function LogSection() {
     setCategoryModalKind(null);
   }
 
+  function handleAddTransaction(_input: NewTransactionInput) {
+    // TODO: persist the transaction to the log
+    setActiveEntry(null);
+  }
+
   return (
     <View style={styles.root}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: 80 + insets.bottom + Spacing.marginMain },
+          { paddingBottom: insets.bottom + Spacing.marginMain },
         ]}
         showsVerticalScrollIndicator={false}
       >
@@ -143,6 +180,8 @@ export function LogSection() {
           spendTotal={summary.spendTotal}
           gainTotal={summary.gainTotal}
           onAddCategory={(kind) => setCategoryModalKind(kind)}
+          onSpendPress={(cat) => setActiveEntry({ kind: 'spend', cat })}
+          onGainPress={(cat) => setActiveEntry({ kind: 'gain', cat })}
         />
 
         <TransactionHistory
@@ -155,18 +194,21 @@ export function LogSection() {
         />
       </ScrollView>
 
-      <Fab
-        onPress={() => {
-          // TODO: open add transaction flow
-        }}
-        bottomInset={insets.bottom}
-      />
-
       <AddCategoryModal
         visible={categoryModalKind !== null}
         kind={categoryModalKind ?? 'spend'}
         onClose={() => setCategoryModalKind(null)}
         onSubmit={handleAddCategory}
+      />
+
+      <AddTransactionModal
+        visible={activeEntry !== null}
+        kind={activeEntry?.kind ?? 'spend'}
+        category={activeEntry?.cat.category ?? ''}
+        categoryIcon={activeEntry?.cat.icon ?? 'shopping-bag'}
+        accounts={modalAccounts}
+        onClose={() => setActiveEntry(null)}
+        onSubmit={handleAddTransaction}
       />
     </View>
   );
@@ -209,12 +251,16 @@ function CategorySummaryCard({
   spendTotal,
   gainTotal,
   onAddCategory,
+  onSpendPress,
+  onGainPress,
 }: {
   spends: CategoryTotal[];
   gains: CategoryTotal[];
   spendTotal: number;
   gainTotal: number;
   onAddCategory: (kind: CategoryKind) => void;
+  onSpendPress: (cat: CategoryTotal) => void;
+  onGainPress: (cat: CategoryTotal) => void;
 }) {
   const { colors, styles } = useLogTheme();
   return (
@@ -236,7 +282,11 @@ function CategorySummaryCard({
         </View>
         <View style={styles.summaryGrid}>
           {spends.map((c) => (
-            <SpendCategoryCell key={c.category} cat={c} />
+            <SpendCategoryCell
+              key={c.category}
+              cat={c}
+              onPress={() => onSpendPress(c)}
+            />
           ))}
           <AddCategoryCell onPress={() => onAddCategory('spend')} />
         </View>
@@ -257,7 +307,11 @@ function CategorySummaryCard({
         </View>
         <View style={styles.summaryGrid}>
           {gains.map((c) => (
-            <GainCategoryCell key={c.category} cat={c} />
+            <GainCategoryCell
+              key={c.category}
+              cat={c}
+              onPress={() => onGainPress(c)}
+            />
           ))}
           <AddCategoryCell onPress={() => onAddCategory('gain')} />
         </View>
@@ -294,10 +348,19 @@ function AddCategoryCell({ onPress }: { onPress: () => void }) {
   );
 }
 
-function SpendCategoryCell({ cat }: { cat: CategoryTotal }) {
+function SpendCategoryCell({
+  cat,
+  onPress,
+}: {
+  cat: CategoryTotal;
+  onPress: () => void;
+}) {
   const { colors, styles } = useLogTheme();
   return (
-    <View style={styles.categoryCell}>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.categoryCell, pressed && { opacity: 0.6 }]}
+    >
       <View
         style={[
           styles.categoryBubble,
@@ -317,11 +380,17 @@ function SpendCategoryCell({ cat }: { cat: CategoryTotal }) {
       <Text style={styles.categoryAmount}>
         {formatCompactCurrency(cat.total)}
       </Text>
-    </View>
+    </Pressable>
   );
 }
 
-function GainCategoryCell({ cat }: { cat: CategoryTotal }) {
+function GainCategoryCell({
+  cat,
+  onPress,
+}: {
+  cat: CategoryTotal;
+  onPress: () => void;
+}) {
   const { colors, styles } = useLogTheme();
   const isSecondary = cat.category === 'Stocks';
   const tint = isSecondary
@@ -330,7 +399,10 @@ function GainCategoryCell({ cat }: { cat: CategoryTotal }) {
   const border = isSecondary ? colors.white05 : colors.primaryTint20;
   const iconColor = isSecondary ? colors.secondary : colors.primary;
   return (
-    <View style={styles.categoryCell}>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.categoryCell, pressed && { opacity: 0.6 }]}
+    >
       <View
         style={[
           styles.categoryBubble,
@@ -343,7 +415,7 @@ function GainCategoryCell({ cat }: { cat: CategoryTotal }) {
       <Text style={styles.categoryAmount}>
         {formatCompactCurrency(cat.total)}
       </Text>
-    </View>
+    </Pressable>
   );
 }
 
@@ -492,36 +564,6 @@ function TransactionRow({ tx }: { tx: Transaction }) {
         {formatSignedCurrency(tx.amount)}
       </Text>
     </View>
-  );
-}
-
-function Fab({
-  onPress,
-  bottomInset,
-}: {
-  onPress: () => void;
-  bottomInset: number;
-}) {
-  const { colors, styles } = useLogTheme();
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.fabShadow,
-        { bottom: Spacing.marginMain + bottomInset },
-        pressed && { transform: [{ scale: 0.9 }] },
-      ]}
-      hitSlop={8}
-    >
-      <LinearGradient
-        colors={[colors.secondaryContainer, colors.primary]}
-        start={{ x: 0, y: 1 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.fab}
-      >
-        <MaterialIcons name="add" size={28} color={colors.onPrimary} />
-      </LinearGradient>
-    </Pressable>
   );
 }
 
@@ -738,26 +780,6 @@ function createStyles(colors: ColorPalette) {
       fontSize: 14,
       fontWeight: '700',
       color: colors.error,
-    },
-
-    fabShadow: {
-      position: 'absolute',
-      right: Spacing.marginMain,
-      width: 56,
-      height: 56,
-      borderRadius: 28,
-      shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 20 },
-      shadowOpacity: 0.4,
-      shadowRadius: 24,
-      elevation: 12,
-    },
-    fab: {
-      width: 56,
-      height: 56,
-      borderRadius: 28,
-      alignItems: 'center',
-      justifyContent: 'center',
     },
   });
 }

@@ -19,6 +19,8 @@ type Props = {
   account: Account | null;
   onClose: () => void;
   onDelete: () => void;
+  onEdit: () => void;
+  onUpdateBalance: () => void;
 };
 
 function getAccentColor(colors: ColorPalette): Record<string, string> {
@@ -53,7 +55,13 @@ function formatBalance(amount: number) {
   })}`;
 }
 
-export function AccountActionsSheet({ account, onClose, onDelete }: Props) {
+export function AccountActionsSheet({
+  account,
+  onClose,
+  onDelete,
+  onEdit,
+  onUpdateBalance,
+}: Props) {
   const insets = useSafeAreaInsets();
   const { colors, styles } = useAccountActionsTheme();
   // Snapshot the account so its data stays rendered during the slide-out animation,
@@ -139,19 +147,13 @@ export function AccountActionsSheet({ account, onClose, onDelete }: Props) {
             <ActionRow
               icon="edit"
               label="Edit Account"
-              onPress={() => {
-                // TODO: open edit form
-                onClose();
-              }}
+              onPress={onEdit}
             />
             <Divider />
             <ActionRow
               icon="attach-money"
               label="Update Balance"
-              onPress={() => {
-                // TODO: open quick-balance editor
-                onClose();
-              }}
+              onPress={onUpdateBalance}
             />
           </View>
 
