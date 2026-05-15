@@ -158,6 +158,7 @@ export function AddCategoryModal({ visible, kind, onClose, onSubmit }: Props) {
                       name={name}
                       size={24}
                       color={selected ? accentColor : colors.onSurfaceVariant}
+                      style={styles.iconGlyph}
                     />
                   </Pressable>
                 );
@@ -241,12 +242,22 @@ function createStyles(colors: ColorPalette) {
     iconCell: {
       width: '22%',
       aspectRatio: 1,
+      minHeight: 64,
       borderRadius: Radius.lg,
       backgroundColor: colors.surfaceContainerLow,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: colors.white05,
       alignItems: 'center',
       justifyContent: 'center',
+      paddingVertical: Spacing.stackMd,
+    },
+    iconGlyph: {
+      width: 24,
+      height: 24,
+      lineHeight: 24,
+      textAlign: 'center',
+      textAlignVertical: 'center',
+      includeFontPadding: false,
     },
     primaryBtn: {
       borderRadius: Radius.xl,
