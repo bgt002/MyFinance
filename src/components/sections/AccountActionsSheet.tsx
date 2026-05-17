@@ -12,8 +12,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BankLogo } from '@/components/ui/BankLogo';
 import { Radius, Spacing, Type, type ColorPalette } from '@/constants/theme';
-import { ACCOUNT_CATEGORIES, type Account } from '@/data/dummy';
+import { ACCOUNT_CATEGORIES } from '@/constants/accounts';
 import { useThemeColors } from '@/theme';
+import type { Account } from '@/types/account';
 
 type Props = {
   account: Account | null;

@@ -6,12 +6,12 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { Radius, Spacing, Type, type ColorPalette } from '@/constants/theme';
 import {
   dashboardSummary,
-  recentTransactions,
   savingsProgress,
   spendingAnalysis,
-  type Transaction,
 } from '@/data/dummy';
+import { useTransactions } from '@/hooks/useTransactions';
 import { useThemeColors } from '@/theme';
+import type { Transaction } from '@/types/transaction';
 
 const SPARKLINE_HEIGHT = 48;
 
@@ -265,7 +265,9 @@ function SavingsProgressCard() {
 }
 
 function RecentTransactionsList() {
-  const { styles } = useHomeTheme();
+  const { colors, styles } = useHomeTheme();
+  const { transactions } = useTransactions();
+  const recent = transactions.slice(0, 3);
 
   return (
     <View style={{ gap: Spacing.stackMd }}>
@@ -275,11 +277,17 @@ function RecentTransactionsList() {
           <Text style={styles.viewAllMuted}>View All</Text>
         </Pressable>
       </View>
-      <View style={{ gap: Spacing.stackSm }}>
-        {recentTransactions.slice(0, 3).map((tx) => (
-          <TransactionRow key={tx.id} tx={tx} />
-        ))}
-      </View>
+      {recent.length === 0 ? (
+        <Text style={{ color: colors.onSurfaceVariant }}>
+          No transactions yet. Add one from the Log tab.
+        </Text>
+      ) : (
+        <View style={{ gap: Spacing.stackSm }}>
+          {recent.map((tx) => (
+            <TransactionRow key={tx.id} tx={tx} />
+          ))}
+        </View>
+      )}
     </View>
   );
 }

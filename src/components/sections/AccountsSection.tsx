@@ -7,16 +7,18 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BankLogo } from '@/components/ui/BankLogo';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Radius, Spacing, Type, type ColorPalette } from '@/constants/theme';
+import { useAccounts } from '@/hooks/useAccounts';
+import { useThemeColors } from '@/theme';
+import type {
+  Account,
+  AccountCategory,
+  AccountGroupBlock,
+  AccountTypeGroup,
+} from '@/types/account';
 import {
   computeAccountsBreakdown,
   groupAccountsByTypeGroup,
-  type Account,
-  type AccountCategory,
-  type AccountGroupBlock,
-  type AccountTypeGroup,
-} from '@/data/dummy';
-import { useAccounts } from '@/hooks/useAccounts';
-import { useThemeColors } from '@/theme';
+} from '@/utils/accountsHelpers';
 
 import { AccountActionsSheet } from './AccountActionsSheet';
 import { AddAccountModal, type NewAccountInput } from './AddAccountModal';

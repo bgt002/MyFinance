@@ -1,13 +1,15 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import * as m001 from './001_accounts';
+import * as m002 from './002_transactions';
+import * as m003 from './003_goals';
 
 type Migration = {
   version: number;
   up: (db: SQLiteDatabase) => Promise<void>;
 };
 
-const MIGRATIONS: Migration[] = [m001];
+const MIGRATIONS: Migration[] = [m001, m002, m003];
 
 export async function runMigrations(db: SQLiteDatabase): Promise<void> {
   await db.execAsync('PRAGMA journal_mode = WAL;');

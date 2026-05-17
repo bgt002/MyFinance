@@ -5,6 +5,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -14,78 +15,94 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Radius, Spacing, Type, type ColorPalette } from '@/constants/theme';
 import { useThemeColors } from '@/theme';
+import type { Goal } from '@/types/goal';
 
 type MaterialIconName = keyof typeof MaterialIcons.glyphMap;
 
-const SPEND_ICONS: MaterialIconName[] = [
-  'restaurant',
-  'home',
-  'directions-car',
-  'shopping-bag',
-  'local-cafe',
-  'medical-services',
-  'school',
-  'fitness-center',
-  'flight',
-  'pets',
-  'palette',
-  'bolt',
-];
-
-const GAIN_ICONS: MaterialIconName[] = [
-  'payments',
-  'trending-up',
-  'business',
-  'redeem',
+const GOAL_ICONS: MaterialIconName[] = [
   'savings',
-  'work',
-  'attach-money',
+  'shield',
+  'flight',
+  'directions-car',
+  'home-work',
+  'laptop-mac',
+  'school',
+  'family-restroom',
   'card-giftcard',
+  'celebration',
+  'fitness-center',
+  'pets',
 ];
 
-export type CategoryKind = 'spend' | 'gain';
-
-export type NewCategoryInput = {
-  name: string;
+export type GoalFormResult = {
+  title: string;
+  target: number;
+  saved: number;
   icon: MaterialIconName;
-  kind: CategoryKind;
-  initialAmount?: number;
+  description?: string;
 };
 
 type Props = {
   visible: boolean;
-  kind: CategoryKind;
+  goal: Goal | null; // null = add mode, set = edit mode
   onClose: () => void;
-  onSubmit: (input: NewCategoryInput) => void;
+  onSubmit: (result: GoalFormResult) => void;
 };
 
-export function AddCategoryModal({ visible, kind, onClose, onSubmit }: Props) {
-  const insets = useSafeAreaInsets();
+function useStyles() {
   const colors = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  return { colors, styles };
+}
 
-  const [name, setName] = useState('');
+export function GoalFormModal({ visible, goal, onClose, onSubmit }: Props) {
+  const insets = useSafeAreaInsets();
+  const { colors, styles } = useStyles();
+  const isEdit = goal !== null;
+
+  const [title, setTitle] = useState('');
+  const [target, setTarget] = useState('');
+  const [saved, setSaved] = useState('');
   const [icon, setIcon] = useState<MaterialIconName | null>(null);
-  const [initial, setInitial] = useState('');
+  const [description, setDescription] = useState('');
 
   useEffect(() => {
-    if (visible) {
-      setName('');
+    if (!visible) return;
+    if (goal) {
+      setTitle(goal.title);
+      setTarget(String(goal.target));
+      setSaved(String(goal.saved));
+      setIcon(goal.icon);
+      setDescription(goal.description ?? '');
+    } else {
+      setTitle('');
+      setTarget('');
+      setSaved('');
       setIcon(null);
-      setInitial('');
+      setDescription('');
     }
-  }, [visible]);
+  }, [visible, goal]);
 
-  const icons = kind === 'gain' ? GAIN_ICONS : SPEND_ICONS;
-  const accentColor = kind === 'gain' ? colors.primary : colors.error;
-  const canSubmit = name.trim().length > 0 && icon !== null;
+  const parsedTarget = Number(target);
+  const parsedSaved = saved ? Number(saved) : 0;
+  const canSubmit =
+    title.trim().length > 0 &&
+    icon !== null &&
+    Number.isFinite(parsedTarget) &&
+    parsedTarget > 0 &&
+    Number.isFinite(parsedSaved) &&
+    parsedSaved >= 0;
 
   function handleSubmit() {
     if (!canSubmit || !icon) return;
-    const parsed = initial ? Number(initial) : NaN;
-    const initialAmount =
-      Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
-    onSubmit({ name: name.trim(), icon, kind, initialAmount });
+    const result: GoalFormResult = {
+      title: title.trim(),
+      target: parsedTarget,
+      saved: parsedSaved,
+      icon,
+      ...(description.trim() ? { description: description.trim() } : {}),
+    };
+    onSubmit(result);
   }
 
   return (
@@ -118,39 +135,55 @@ export function AddCategoryModal({ visible, kind, onClose, onSubmit }: Props) {
           >
             <MaterialIcons name="close" size={24} color={colors.onSurface} />
           </Pressable>
-          <Text style={styles.headerTitle}>
-            New {kind === 'gain' ? 'Gain' : 'Spend'} Category
-          </Text>
+          <Text style={styles.headerTitle}>{isEdit ? 'Edit Goal' : 'New Goal'}</Text>
           <View style={styles.headerIcon} />
         </View>
 
-        <View style={styles.body}>
+        <ScrollView
+          contentContainerStyle={styles.body}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           <View style={{ gap: Spacing.stackSm }}>
-            <Text style={styles.label}>Name</Text>
+            <Text style={styles.label}>Title</Text>
             <TextInput
-              value={name}
-              onChangeText={setName}
-              placeholder={kind === 'gain' ? 'e.g. Freelance' : 'e.g. Coffee'}
+              value={title}
+              onChangeText={setTitle}
+              placeholder="e.g. Emergency Fund"
               placeholderTextColor={colors.onSurfaceVariant}
-              autoFocus
-              returnKeyType="done"
-              onSubmitEditing={handleSubmit}
+              autoFocus={!isEdit}
+              returnKeyType="next"
               style={styles.input}
             />
           </View>
 
           <View style={{ gap: Spacing.stackSm }}>
-            <Text style={styles.label}>Initial amount (optional)</Text>
+            <Text style={styles.label}>Target</Text>
             <View style={styles.amountRow}>
               <Text style={styles.amountPrefix}>$</Text>
               <TextInput
-                value={initial}
-                onChangeText={(s) => setInitial(s.replace(/[^0-9.]/g, ''))}
+                value={target}
+                onChangeText={(s) => setTarget(s.replace(/[^0-9.]/g, ''))}
                 placeholder="0.00"
                 placeholderTextColor={colors.onSurfaceVariant}
                 keyboardType="decimal-pad"
-                returnKeyType="done"
-                onSubmitEditing={handleSubmit}
+                returnKeyType="next"
+                style={styles.amountInput}
+              />
+            </View>
+          </View>
+
+          <View style={{ gap: Spacing.stackSm }}>
+            <Text style={styles.label}>Currently saved</Text>
+            <View style={styles.amountRow}>
+              <Text style={styles.amountPrefix}>$</Text>
+              <TextInput
+                value={saved}
+                onChangeText={(s) => setSaved(s.replace(/[^0-9.]/g, ''))}
+                placeholder="0.00"
+                placeholderTextColor={colors.onSurfaceVariant}
+                keyboardType="decimal-pad"
+                returnKeyType="next"
                 style={styles.amountInput}
               />
             </View>
@@ -159,7 +192,7 @@ export function AddCategoryModal({ visible, kind, onClose, onSubmit }: Props) {
           <View style={{ gap: Spacing.stackSm }}>
             <Text style={styles.label}>Icon</Text>
             <View style={styles.iconGrid}>
-              {icons.map((name) => {
+              {GOAL_ICONS.map((name) => {
                 const selected = icon === name;
                 return (
                   <Pressable
@@ -168,11 +201,8 @@ export function AddCategoryModal({ visible, kind, onClose, onSubmit }: Props) {
                     style={[
                       styles.iconCell,
                       selected && {
-                        backgroundColor:
-                          kind === 'gain'
-                            ? colors.primaryTint10
-                            : colors.surfaceContainerHigh,
-                        borderColor: accentColor,
+                        backgroundColor: colors.primaryTint10,
+                        borderColor: colors.primary,
                         borderWidth: 1.5,
                       },
                     ]}
@@ -180,8 +210,7 @@ export function AddCategoryModal({ visible, kind, onClose, onSubmit }: Props) {
                     <MaterialIcons
                       name={name}
                       size={24}
-                      color={selected ? accentColor : colors.onSurfaceVariant}
-                      style={styles.iconGlyph}
+                      color={selected ? colors.primary : colors.onSurfaceVariant}
                     />
                   </Pressable>
                 );
@@ -189,24 +218,28 @@ export function AddCategoryModal({ visible, kind, onClose, onSubmit }: Props) {
             </View>
           </View>
 
+          <View style={{ gap: Spacing.stackSm }}>
+            <Text style={styles.label}>Description (optional)</Text>
+            <TextInput
+              value={description}
+              onChangeText={setDescription}
+              placeholder="e.g. 3 months of expenses"
+              placeholderTextColor={colors.onSurfaceVariant}
+              multiline
+              style={[styles.input, { minHeight: 64 }]}
+            />
+          </View>
+        </ScrollView>
+
+        <View style={styles.footer}>
           <Pressable
             onPress={canSubmit ? handleSubmit : undefined}
             style={({ pressed }) => [
               styles.primaryBtn,
-              {
-                backgroundColor: accentColor,
-                opacity: canSubmit ? (pressed ? 0.85 : 1) : 0.4,
-              },
+              { opacity: canSubmit ? (pressed ? 0.85 : 1) : 0.4 },
             ]}
           >
-            <Text
-              style={[
-                styles.primaryBtnText,
-                { color: kind === 'gain' ? colors.onPrimary : colors.onError },
-              ]}
-            >
-              Add Category
-            </Text>
+            <Text style={styles.primaryBtnText}>{isEdit ? 'Save' : 'Add Goal'}</Text>
           </Pressable>
         </View>
       </KeyboardAvoidingView>
@@ -243,6 +276,7 @@ function createStyles(colors: ColorPalette) {
     body: {
       padding: Spacing.marginMain,
       gap: Spacing.stackLg,
+      paddingBottom: Spacing.stackLg * 3,
     },
     label: {
       ...Type.labelCaps,
@@ -293,22 +327,22 @@ function createStyles(colors: ColorPalette) {
       justifyContent: 'center',
       paddingVertical: Spacing.stackMd,
     },
-    iconGlyph: {
-      width: 24,
-      height: 24,
-      lineHeight: 24,
-      textAlign: 'center',
-      textAlignVertical: 'center',
-      includeFontPadding: false,
+    footer: {
+      padding: Spacing.marginMain,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.outlineVariant,
+      backgroundColor: colors.background,
     },
     primaryBtn: {
-      borderRadius: Radius.xl,
+      backgroundColor: colors.primary,
+      borderRadius: Radius.pill,
       paddingVertical: Spacing.stackMd,
       alignItems: 'center',
       justifyContent: 'center',
     },
     primaryBtnText: {
       ...Type.titleSm,
+      color: colors.onPrimary,
     },
   });
 }

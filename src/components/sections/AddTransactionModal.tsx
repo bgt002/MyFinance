@@ -14,8 +14,9 @@ import {
 
 import { BankLogo } from '@/components/ui/BankLogo';
 import { Radius, Spacing, Type, type ColorPalette } from '@/constants/theme';
-import { type Account } from '@/data/dummy';
+import type { Account } from '@/types/account';
 import { useThemeColors } from '@/theme';
+import { formatDayLabel, type DateKey } from '@/utils/dateKey';
 import { type LogoSlug } from '@/utils/logoRegistry';
 
 type MaterialIconName = keyof typeof MaterialIcons.glyphMap;
@@ -32,8 +33,11 @@ export type Allocation = {
 export type NewTransactionInput = {
   kind: TransactionKind;
   category: string;
+  icon: MaterialIconName;
   amount: number;
   allocations: Allocation[];
+  date: DateKey;
+  description?: string;
 };
 
 type SplitEntry = { value: string; isRemainder: boolean };
@@ -44,6 +48,7 @@ type Props = {
   category: string;
   categoryIcon: MaterialIconName;
   accounts: Account[];
+  date: DateKey;
   onClose: () => void;
   onSubmit: (input: NewTransactionInput) => void;
 };
@@ -54,6 +59,7 @@ export function AddTransactionModal({
   category,
   categoryIcon,
   accounts,
+  date,
   onClose,
   onSubmit,
 }: Props) {
@@ -61,6 +67,7 @@ export function AddTransactionModal({
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [amount, setAmount] = useState('');
+  const [description, setDescription] = useState('');
   const [accountId, setAccountId] = useState<string | null>(null);
   const [mode, setMode] = useState<SplitMode>('single');
   const [unit, setUnit] = useState<SplitUnit>('percent');
@@ -69,6 +76,7 @@ export function AddTransactionModal({
   useEffect(() => {
     if (visible) {
       setAmount('');
+      setDescription('');
       setAccountId(null);
       setMode('single');
       setUnit('percent');
@@ -217,11 +225,15 @@ export function AddTransactionModal({
 
   function handleSubmit() {
     if (!canSubmit) return;
+    const trimmedDescription = description.trim();
     onSubmit({
       kind,
       category,
+      icon: categoryIcon,
       amount: parsedAmount,
       allocations: splitResult.allocations,
+      date,
+      ...(trimmedDescription ? { description: trimmedDescription } : {}),
     });
   }
 
@@ -247,7 +259,10 @@ export function AddTransactionModal({
                   color={accentColor}
                 />
               </View>
-              <Text style={styles.title}>{category}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.title}>{category}</Text>
+                <Text style={styles.dateSubtitle}>For {formatDayLabel(date)}</Text>
+              </View>
             </View>
             <Pressable
               onPress={onClose}
@@ -267,6 +282,20 @@ export function AddTransactionModal({
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
+            <View style={styles.field}>
+              <Text style={styles.label}>Name (optional)</Text>
+              <TextInput
+                value={description}
+                onChangeText={setDescription}
+                placeholder={
+                  isGain ? 'e.g. Side project payout' : 'e.g. Whole Foods'
+                }
+                placeholderTextColor={colors.inputPlaceholder}
+                returnKeyType="next"
+                style={styles.nameInput}
+              />
+            </View>
+
             <View style={styles.field}>
               <Text style={styles.label}>Amount</Text>
               <View style={styles.amountRow}>
@@ -739,7 +768,11 @@ function createStyles(colors: ColorPalette) {
     title: {
       ...Type.titleSm,
       color: colors.onSurface,
-      flex: 1,
+    },
+    dateSubtitle: {
+      ...Type.bodyMd,
+      color: colors.onSurfaceVariant,
+      marginTop: 2,
     },
     closeBtn: {
       width: 32,
@@ -758,6 +791,14 @@ function createStyles(colors: ColorPalette) {
     label: {
       ...Type.labelCaps,
       color: colors.onSurfaceVariant,
+    },
+    nameInput: {
+      ...Type.bodyLg,
+      color: colors.onSurface,
+      backgroundColor: colors.surfaceContainerLow,
+      borderRadius: Radius.xl,
+      paddingHorizontal: Spacing.stackMd,
+      paddingVertical: Spacing.stackMd,
     },
     amountRow: {
       flexDirection: 'row',

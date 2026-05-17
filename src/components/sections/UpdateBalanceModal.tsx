@@ -13,7 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Radius, Spacing, Type, type ColorPalette } from '@/constants/theme';
-import { type Account } from '@/data/dummy';
+import type { Account } from '@/types/account';
 import { useThemeColors } from '@/theme';
 
 export type BalancePatch = {

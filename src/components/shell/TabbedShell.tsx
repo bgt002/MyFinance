@@ -36,8 +36,9 @@ const TABS = [
   { key: 'home', label: 'Home' },
   { key: 'accounts', label: 'Accounts' },
   { key: 'log', label: 'Log' },
-  { key: 'charts', label: 'Charts' },
+  { key: 'budgets', label: 'Budgets' },
   { key: 'goals', label: 'Goals' },
+  { key: 'charts', label: 'Charts' },
   { key: 'subscribe', label: 'Subscribe' },
 ] as const;
 

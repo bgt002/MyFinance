@@ -16,12 +16,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BankLogo } from '@/components/ui/BankLogo';
 import { Radius, Spacing, Type, type ColorPalette } from '@/constants/theme';
-import {
-  ACCOUNT_TYPES_BY_KEY,
-  type Account,
-  type AccountTypeGroup,
-} from '@/data/dummy';
+import { ACCOUNT_TYPES_BY_KEY } from '@/constants/accounts';
 import { useThemeColors } from '@/theme';
+import type { Account, AccountTypeGroup } from '@/types/account';
 
 export type EditAccountPatch = {
   name: string;

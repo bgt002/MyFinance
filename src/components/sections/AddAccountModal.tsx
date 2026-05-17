@@ -17,15 +17,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BankLogo } from '@/components/ui/BankLogo';
 import { Radius, Spacing, Type, type ColorPalette } from '@/constants/theme';
-import {
-  ACCOUNT_TYPE_GROUPS,
-  ACCOUNT_TYPES,
-  type Account,
-  type AccountTypeDef,
-  type AccountTypeGroup,
-  type AccountTypeKey,
-} from '@/data/dummy';
+import { ACCOUNT_TYPE_GROUPS, ACCOUNT_TYPES } from '@/constants/accounts';
 import { useThemeColors } from '@/theme';
+import type {
+  Account,
+  AccountTypeDef,
+  AccountTypeGroup,
+  AccountTypeKey,
+} from '@/types/account';
 import { LOGO_REGISTRY, type LogoSlug } from '@/utils/logoRegistry';
 
 type Step = 'type' | 'bank' | 'details';
@@ -49,7 +48,12 @@ function useAddAccountTheme() {
 }
 
 function requiresBankPicker(typeKey: AccountTypeKey | null): boolean {
-  return typeKey === 'debit_card' || typeKey === 'credit_card';
+  return (
+    typeKey === 'debit_card' ||
+    typeKey === 'credit_card' ||
+    typeKey === 'savings' ||
+    typeKey === 'savings_hysa'
+  );
 }
 
 type Props = {

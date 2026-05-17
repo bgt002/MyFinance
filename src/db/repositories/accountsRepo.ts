@@ -1,14 +1,15 @@
-import {
-  type Account,
-  type AccountCategoryKey,
-  type AccountKind,
-  type AccountTypeKey,
-} from '@/data/dummy';
+import type { MaterialIcons } from '@expo/vector-icons';
+
 import { getDb } from '@/db/client';
+import type {
+  Account,
+  AccountCategoryKey,
+  AccountKind,
+  AccountTypeKey,
+} from '@/types/account';
+import type { LogoSlug } from '@/utils/logoRegistry';
 import { formatRelativeUpdated } from '@/utils/relativeTime';
 import { uuidv4 } from '@/utils/uuid';
-import type { MaterialIcons } from '@expo/vector-icons';
-import type { LogoSlug } from '@/utils/logoRegistry';
 
 type MaterialIconName = keyof typeof MaterialIcons.glyphMap;
 
